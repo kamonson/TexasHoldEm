@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 12.00.30501.0	    12/01/14 23:32:39
+Microsoft (R) Macro Assembler Version 12.00.30501.0	    12/01/14 23:48:00
 MASM Templat						     Page 1 - 1
 
 
@@ -147,7 +147,7 @@ Microsoft (R) Macro Assembler Version 12.00.30501.0	    12/01/14 23:32:39
  000000E8  83 C3 04				add ebx, TYPE Deck
  000000EB  E2 E3			Loop L4
 
- 000000ED  A1 00000010 R	mov eax,deck(8).card.suit
+ 000000ED  A1 00000010 R	mov eax,deck(8).card.suit								;not working
 
  000000F2  E8 00000000 E	call RandomRange
  000000F7  E8 00000001		call CheckCard
@@ -247,7 +247,7 @@ Microsoft (R) Macro Assembler Version 12.00.30501.0	    12/01/14 23:32:39
  00000102			DealRiver ENDP
 
 				END main
-Microsoft (R) Macro Assembler Version 12.00.30501.0	    12/01/14 23:32:39
+Microsoft (R) Macro Assembler Version 12.00.30501.0	    12/01/14 23:48:00
 MASM Templat						     Symbols 2 - 1
 
 
