@@ -6,29 +6,37 @@ TITLE MASM Template
 INCLUDE Irvine32.inc 
 
 .data
-spade DWORD 1,2,3,4,5,6,7,8,9,10,11,12
-heart DWORD 1,2,3,4,5,6,7,8,9,10,11,12
-club DWORD 1,2,3,4,5,6,7,8,9,10,11,12
-dimond DWORD 1,2,3,4,5,6,7,8,9,10,11,12
 
-Deck DWORD spade, heart, club, dimond
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+Card STRUCT																																								;
+;Basic class for all all cards suits containing suit and value																											;
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+	Suit DWORD 0																																						;
+	Value DWORD 0																																						;
+Card Ends																																								;
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
-PlayerHand DWORD 2 dup(?)
-SpokHand DWORD 2 dup(?)
-Table DWORD 5 dup(?)
-Burn DWORD 2 dup(?)
+card1 Card <0,0>
 
-NumberCards DWORD ?
+Deck DWORD 52 dup (Card)											;array of Suits
+PlayerHand DWORD 2 dup(Card)										;2 Cards for the player
+SpokHand DWORD 2 dup(Card)											;2 Cards for the AI
+Table DWORD 5 dup(Card)												;3 Flop cards, 1 Turn card, 1 River card
+Burn DWORD 2 dup(Card)												;2 Burn cards
 
-Card DWORD ?
+NumberCards DWORD ?													;not sure what this is/was for
+DeckSmall DWORD 11 (Card)											;11 cards needed for game
 
-DeckSmall DWORD 11 dup(?)
+spade DWORD 1
+heart DWORD 2
+club DWORD 3
+dimond DWORD 4
 
 .code
 main PROC
 
-call Shuffel
-call DealHand
+Call Shuffel
+Call DealHand
 Call DealFlop
 Call DealTurn
 Call DealRiver
@@ -38,14 +46,76 @@ main ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 Shuffel PROC																																							;
-;	Recieves: Deck																																						;
-;	Returns: Card with random value																																		;
+;	Recieves: card1, spade, heart, club, dimond, Deck (empty), DeckSmall																								;
+;	Returns: DeckSmall																																					;
 ;	Calls CheckCard																																						;
-;Randomly assigns a value to a card from deck containing 1-k from any suite CheckCard creates SmallDeck to deal cards to SpokHand, PlayerHand, Burn and Table			;
+;Adds 52 cards to the deck 13 from each suit, selects 11 random cards to add to DeckSmall																				;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-mov eax, deck
+
+mov ecx,13
+mov eax,1
+mov edx,1
+mov ebx, 0
+mov edi, spade
+
+	L1:
+		mov card1.suit, edi
+		mov card1.value, eax
+		mov esi, OFFSET card1
+		mov Deck[ebx],esi
+		inc eax
+		inc edx
+		add ebx, TYPE Deck
+	Loop L1
+
+mov ecx,13
+mov eax,1
+mov edx,1
+mov edi, heart
+	
+	L2:
+		mov card1.suit, edi
+		mov card1.value, eax
+		mov esi, OFFSET card1
+		mov Deck[ebx],esi
+		inc eax
+		inc edx
+		add ebx, TYPE Deck
+	Loop L2
+
+mov ecx,13
+mov eax,1
+mov edx,1
+mov edi, club
+
+	L3:
+		mov card1.suit, edi
+		mov card1.value, eax
+		mov esi, OFFSET card1
+		mov Deck[ebx],esi
+		inc eax
+		inc edx
+		add ebx, TYPE Deck
+	Loop L3
+
+mov ecx,13
+mov eax,1
+mov edx,1
+mov edi, dimond
+
+	L4:
+		mov card1.suit, edi
+		mov card1.value, eax
+		mov esi, OFFSET card1
+		mov Deck[ebx],esi
+		inc eax
+		inc edx
+		add ebx, TYPE Deck
+	Loop L4
+
+mov eax,deck(8).card.suit								;not working
+
 call RandomRange
-mov Card,eax
 call CheckCard
 ret
 Shuffel ENDP
@@ -129,7 +199,7 @@ DealRiver PROC																																							;
 ;	Recieves: SmallDeck																																					;
 ;	Returns: Nothing																																					;
 ;	Assigns cards from DeckSmall to River																																;
-;Procedure manipulates River																																				;
+;Procedure manipulates River																																			;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 ;do not include mov NumberCards,0
