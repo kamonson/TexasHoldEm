@@ -61,8 +61,7 @@ mov edi, spade
 	L1:
 		mov card1.suit, edi
 		mov card1.value, eax
-		mov esi, OFFSET card1
-		mov Deck[ebx],esi
+		mov Deck[ebx], OFFSET card1
 		inc eax
 		inc edx
 		add ebx, TYPE Deck
@@ -76,8 +75,7 @@ mov edi, heart
 	L2:
 		mov card1.suit, edi
 		mov card1.value, eax
-		mov esi, OFFSET card1
-		mov Deck[ebx],esi
+		mov Deck[ebx], OFFSET card1
 		inc eax
 		inc edx
 		add ebx, TYPE Deck
@@ -91,8 +89,7 @@ mov edi, club
 	L3:
 		mov card1.suit, edi
 		mov card1.value, eax
-		mov esi, OFFSET card1
-		mov Deck[ebx],esi
+		mov Deck[ebx], OFFSET card1
 		inc eax
 		inc edx
 		add ebx, TYPE Deck
@@ -106,16 +103,30 @@ mov edi, dimond
 	L4:
 		mov card1.suit, edi
 		mov card1.value, eax
-		mov esi, OFFSET card1
-		mov Deck[ebx],esi
+		mov Deck[ebx], OFFSET card1
 		inc eax
 		inc edx
 		add ebx, TYPE Deck
 	Loop L4
 
-mov eax,deck(8).card.suit								;not working
+mov eax,deck(8).card.value								;not working bad value
 
-call RandomRange
+mov ecx, 104
+mov edx,0
+
+	L5:
+		mov eax,52
+		call RandomRange
+		mov ebx, eax
+		mov eax, 4
+		mul ebx
+		mov ebx,deck[eax]
+		mov esi,deck(0)
+		mov deck[eax], esi
+		mov deck(0), ebx
+		inc edx
+	Loop L5
+
 call CheckCard
 ret
 Shuffel ENDP
