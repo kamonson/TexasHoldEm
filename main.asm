@@ -7,218 +7,143 @@ INCLUDE Irvine32.inc
 
 .data
 
-;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-Card STRUCT																																								;
-;Basic class for all all cards suits containing suit and value																											;
-;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-	Suit DWORD 0																																						;
-	Value DWORD 0																																						;
-Card Ends																																								;
-;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+Deck byte 52 dup (?)
 
-card1 Card <0,0>
+																	;array of Suits
+PlayerHand byte 2 dup (?)											;2 Cards for the player
+SpokHand byte 2 dup (?)												;2 Cards for the AI
+Table byte 5 dup (?)												;3 Flop cards, 1 Turn card, 1 River card
 
-Deck DWORD 52 dup (Card)											;array of Suits
-PlayerHand DWORD 2 dup(Card)										;2 Cards for the player
-SpokHand DWORD 2 dup(Card)											;2 Cards for the AI
-Table DWORD 5 dup(Card)												;3 Flop cards, 1 Turn card, 1 River card
-Burn DWORD 2 dup(Card)												;2 Burn cards
-
-NumberCards DWORD ?													;not sure what this is/was for
-DeckSmall DWORD 11 (Card)											;11 cards needed for game
-
-spade DWORD 1
-heart DWORD 2
-club DWORD 3
-dimond DWORD 4
+DeckMark DWORD ?													;Bookmark for place in Deck
+TableMark DWORD ?													;Bookmark for place in Table
 
 .code
 main PROC
-
-Call Shuffel
-Call DealHand
-Call DealFlop
-Call DealTurn
-Call DealRiver
+	G1:
+		Call Shuffel
+		Call DealHand
+		Call DealFlop
+		Call DealTurn
+		Call DealRiver
+	Loop G1
 
 exit
 main ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 Shuffel PROC																																							;
-;	Recieves: card1, spade, heart, club, dimond, Deck (empty), DeckSmall																								;
-;	Returns: DeckSmall																																					;
-;	Calls CheckCard																																						;
-;Adds 52 cards to the deck 13 from each suit, selects 11 random cards to add to DeckSmall																				;
+;	Recieves: nothing																																					;
+;	Returns: Full/shuffled Deck																																			;
+;Adds 52 cards to the Deck 13 from each suit and shuffles them																											;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-
-mov ecx,13
-mov eax,1
-mov edx,1
-mov ebx, 0
-mov edi, spade
-
-	L1:
-		mov card1.suit, edi
-		mov card1.value, eax
-		mov Deck[ebx], OFFSET card1
-		inc eax
-		inc edx
-		add ebx, TYPE Deck
-	Loop L1
-
-mov ecx,13
-mov eax,1
-mov edx,1
-mov edi, heart
-	
-	L2:
-		mov card1.suit, edi
-		mov card1.value, eax
-		mov Deck[ebx], OFFSET card1
-		inc eax
-		inc edx
-		add ebx, TYPE Deck
-	Loop L2
-
-mov ecx,13
-mov eax,1
-mov edx,1
-mov edi, club
-
-	L3:
-		mov card1.suit, edi
-		mov card1.value, eax
-		mov Deck[ebx], OFFSET card1
-		inc eax
-		inc edx
-		add ebx, TYPE Deck
-	Loop L3
-
-mov ecx,13
-mov eax,1
-mov edx,1
-mov edi, dimond
-
-	L4:
-		mov card1.suit, edi
-		mov card1.value, eax
-		mov Deck[ebx], OFFSET card1
-		inc eax
-		inc edx
-		add ebx, TYPE Deck
-	Loop L4
-
-mov eax,deck(8).card.value								;not working bad value
+mov ecx, 52
+mov dl, 0
+mov al, 1
+mov esi, 0
+	L0:
+		mov Deck[esi], al
+		inc al
+		add esi,TYPE Deck
+		inc dl
+	Loop L0
 
 mov ecx, 104
-mov edx,0
 
-	L5:
-		mov eax,52
-		call RandomRange
-		mov ebx, eax
-		mov eax, 4
-		mul ebx
-		mov ebx,deck[eax]
-		mov esi,deck(0)
-		mov deck[eax], esi
-		mov deck(0), ebx
-		inc edx
-	Loop L5
+	S1:
+		mov eax,53
+		call randomrange
+		mov esi, eax
+		mov bl,Deck[esi]
+		mov al, Deck[0]
+		xchg al,bl
+		mov Deck[esi], bl
+		mov Deck[0], al
+	Loop S1
 
-call CheckCard
 ret
 Shuffel ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-CheckCard PROC																																							;
-;	Recieves: Card																																						;
-;	Returns: Card with random value not equal to card in SpokHand, PlayerHand, Table, or Burn																			;
-;	Calls Suffel if Card == DeckSmall																																	;
-;Checks card against DeckSmall if card in DeckSmall then recall Shuffel, when DeckSmall full return to previous function												;
-;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-
-;for (int i=0; i<size of DeckSmall; i++){if (DeckSmall[i] == Card){call Shuffel;} else {DeckSmall.pushback(Card);}
-
-ret
-CheckCard ENDP
-
-;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 DealHand PROC																																							;
-;	Recieves: SmallDeck																																					;
+;	Recieves: Deck																																						;
 ;	Returns: Nothing																																					;
-;	Assigns cards from DeckSmall to PlayerHand/SpokHand																												;
-;Procedure manipulates PlayerHand/SpokHand																																;
+;	Assigns cards from Deck to PlayerHand/SpokHand																														;
+;Procedure deals PlayerHand/SpokHand																																	;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+mov ecx, 2
+mov esi, 0
+mov ebx, 0
 
-;mov NumberCards,0
-;move ecx,2
-;	D1:
-;		pop eax,DeckSmall
-;		mov PlayerHand(+ NumberCards),EAX;
-;		pop eax,DeckSmall
-;		mov SpokHand(+ NumberCards),EAX;
-;		
-;		add NumberCards, PlayerHand(Size)
-;	Loop D1	
-
+	H1:
+		mov al, Deck[ebx]
+		mov PlayerHand[esi], al
+		add ebx, TYPE Deck
+		mov al, Deck [ebx]
+		mov SpokHand[esi], al
+		add esi, TYPE PlayerHand
+		add ebx, TYPE Deck
+	Loop H1
+mov DeckMark,EBX
 ret
 DealHand ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 DealFlop PROC																																							;
-;	Recieves: SmallDeck																																					;
+;	Recieves: Deck																																						;
 ;	Returns: Nothing																																					;
-;	Assigns cards from DeckSmall to Flop																																;
-;Procedure manipulates Flop																																				;
+;	Assigns cards from Dek to Flop																																		;
+;Procedure deals Flop																																					;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
-;mov NumberCards,0
-;pop eax,DeckSmall
-;mov Burn, eax
-;move ecx,3
-;	D2:
-;		pop eax,DeckSmall
-;		mov Table(+ NumberCards),EAX;
-;		add NumberCards, Table(Size)
-;	Loop D2	
+mov ecx, 3
+mov ebx, DeckMark
+mov edi,0
 
+	T1:
+		mov al, Deck[ebx]
+		mov Table[edi], al
+		add ebx, TYPE Deck
+		add edi, TYPE Table
+	Loop T1
+mov TableMark,edi
+mov DeckMark,ebx
 ret
 DealFlop ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 DealTurn PROC																																							;
-;	Recieves: SmallDeck																																					;
+;	Recieves: Deck																																						;
 ;	Returns: Nothing																																					;
-;	Assigns cards from DeckSmall to Turn																																;
-;Procedure manipulates Turn																																				;
+;	Assigns cards from Deck to Turn																																		;
+;Procedure skips a card for burn and deals Turn																															;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
-;do not include mov NumberCards,0
-;pop eax,DeckSmall
-;mov Burn, eax
-;pop eax,DeckSmall
-;mov Table(+ NumberCards),EAX;
-;add NumberCards, Table(Size)
+mov ebx, DeckMark
+add ebx, TYPE Deck		;;;;;;;;;THIS IS THE BURN
+mov edi, TableMark
+mov al, Deck[ebx]
+mov Table[edi],al
+add ebx, TYPE Deck
+mov DeckMark, EBX
+add edi, TYPE Table
+mov TableMark, edi
 
 ret
 DealTurn ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 DealRiver PROC																																							;
-;	Recieves: SmallDeck																																					;
+;	Recieves: Deck																																						;
 ;	Returns: Nothing																																					;
-;	Assigns cards from DeckSmall to River																																;
-;Procedure manipulates River																																			;
+;	Assigns cards from Deck to River																																	;
+;Procedure skips a card from Deck for burn and deals River																										;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
-;do not include mov NumberCards,0
-;pop eax,DeckSmall
-;mov Burn, eax
-;pop eax,DeckSmall
-;mov Table(+ NumberCards),EAX;
-;add NumberCards, Table(Size)
+mov ebx, DeckMark
+add ebx, TYPE Deck		;;;;;;;;;THIS IS THE BURN
+mov edi, TableMark
+mov al, Deck[ebx]
+mov Table[edi],al
 
 ret
 DealRiver ENDP
