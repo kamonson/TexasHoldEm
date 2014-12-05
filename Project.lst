@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 12.00.30501.0	    12/02/14 16:49:45
+Microsoft (R) Macro Assembler Version 12.00.30501.0	    12/04/14 16:24:01
 MASM Templat						     Page 1 - 1
 
 
@@ -32,166 +32,436 @@ Microsoft (R) Macro Assembler Version 12.00.30501.0	    12/02/14 16:49:45
 	    00
 	   ]
 
-																;array of Suits
+																					;array of Suits
  00000034  00000002 [		PlayerHand byte 2 dup (?)											;2 Cards for the player
 	    00
 	   ]
- 00000036  00000002 [		SpokHand byte 2 dup (?)											;2 Cards for the AI
+ 00000036  00000002 [		SpockHand byte 2 dup (?)											;2 Cards for the AI
 	    00
 	   ]
  00000038  00000005 [		Table byte 5 dup (?)												;3 Flop cards, 1 Turn card, 1 River card
 	    00
 	   ]
- 0000003D  00000002 [		Burn byte 2 dup (?)												;2 Burn cards
+
+ 0000003D 00000000		DeckMark DWORD ?													;Bookmark for place in Deck
+ 00000041 00000000		TableMark DWORD ?													;Bookmark for place in Table
+
+ 00000045 00000000		ChipsPlayer DWORD 0
+ 00000049 00000000		ChipsSpock  DWORD 0
+ 0000004D 00000000		ChipsTable DWORD 0
+ 00000051 00000001		BigBlind DWORD 1													;Variable for who is responsible for Big blind, other is responsible for little blind 1/2 big blind bet
+ 00000055  00000007 [		FullHandSpock BYTE 7 dup (0)
+	    00
+	   ]
+ 0000005C  00000007 [		FullHandPlayer BYTE 7 dup (0)
 	    00
 	   ]
 
- 0000003F 00000000		DeckMark DWORD ?
- 00000043 00000000		TableMark DWORD ?
+ 00000063 59 6F 75 20 57	PromptYouWin byte "You Win, your earning are: ", 0
+	   69 6E 2C 20 79
+	   6F 75 72 20 65
+	   61 72 6E 69 6E
+	   67 20 61 72 65
+	   3A 20 00
+ 0000007F 59 6F 75 20 4C	PromptYouLose byte "You Lose, you walk away with: ", 0
+	   6F 73 65 2C 20
+	   79 6F 75 20 77
+	   61 6C 6B 20 61
+	   77 61 79 20 77
+	   69 74 68 3A 20
+	   00
+ 0000009E 57 6F 75 6C 64	PromptPlayAgain byte "Would you like to play again 1 for yes or 0 for no:  "
+	   20 79 6F 75 20
+	   6C 69 6B 65 20
+	   74 6F 20 70 6C
+	   61 79 20 61 67
+	   61 69 6E 20 31
+	   20 66 6F 72 20
+	   79 65 73 20 6F
+	   72 20 30 20 66
+	   6F 72 20 6E 6F
+	   3A 20 20
+ 000000D3 3F			PromptWinImage byte "?"
+ 000000D4 3F			PromptLoseImage byte "?"
+ 000000D5 3F			PromptChipsPlayer byte "?"
+ 000000D6 3F			PromptChipsSpock byte "?"
+ 000000D7 54 68 61 74 20	PromptBadInput byte "That is not a valid choice, please try again"
+	   69 73 20 6E 6F
+	   74 20 61 20 76
+	   61 6C 69 64 20
+	   63 68 6F 69 63
+	   65 2C 20 70 6C
+	   65 61 73 65 20
+	   74 72 79 20 61
+	   67 61 69 6E
+
 
  00000000			.code
  00000000			main PROC
- 00000000				G1:
- 00000000  E8 0000001D				Call Shuffel
- 00000005  E8 00000061				Call DealHand
- 0000000A  E8 00000095				Call DealFlop
- 0000000F  E8 000000C1				Call DealTurn
- 00000014  E8 000000EA				Call DealRiver
- 00000019  E2 E5			Loop G1
+ 00000000  C7 05 00000045 R		mov ChipsPlayer, 100
+	   00000064
+ 0000000A  C7 05 00000049 R		mov ChipsSpock, 100
+	   00000064
+ 00000014				G1:
+ 00000014  E8 00000147				Call Ante
+ 00000019  E8 00000045				Call Shuffel
+ 0000001E  E8 00000089				Call DealHand
+ 00000023  E8 0000023A				Call HandSpock
+ 00000028  E8 000002AB				Call Bid1
+ 0000002D  E8 000000B3				Call DealFlop
+ 00000032  E8 0000022B				Call HandSpock
+ 00000037  E8 0000029D				Call Bid2
+ 0000003C  E8 000000D5				Call DealTurn
+ 00000041  E8 0000021C				Call HandSpock
+ 00000046  E8 0000028F				Call Bid3
+ 0000004B  E8 000000F4				Call DealRiver
+ 00000050  E8 00000247				Call HandPlayer
+ 00000055  E8 00000281				Call CompareHand
+ 0000005A  E2 B8			Loop G1
+
 				exit
- 0000001B  6A 00	   *	    push   +000000000h
- 0000001D  E8 00000000 E   *	    call   ExitProcess
- 00000022			main ENDP
+ 0000005C  6A 00	   *	    push   +000000000h
+ 0000005E  E8 00000000 E   *	    call   ExitProcess
+ 00000063			main ENDP
 
 				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
- 00000022			Shuffel PROC																																							;
+ 00000063			Shuffel PROC																																							;
 				;	Recieves: nothing																																					;
-				;	Returns: Full/shuffled deck																																			;
-				;	Calls CheckCard																																						;
-				;Adds 52 cards to the deck 13 from each suit and shuffles them																											;
+				;	Returns: Full/shuffled Deck																																			;
+				;Adds 52 cards to the Deck 13 from each suit and shuffles them		Values 1-13 =Spades 14-26 Hearts 27-39 Clubs 40-52													;
 				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
- 00000022  B9 00000034		mov ecx, 52
- 00000027  B2 00		mov dl, 0
- 00000029  B0 01		mov al, 1
- 0000002B  BE 00000000		mov esi, 0
- 00000030				L0:
- 00000030  88 86 00000000 R			mov deck[esi], al
- 00000036  FE C0				inc al
- 00000038  83 C6 01				add esi,TYPE deck
- 0000003B  FE C2				inc dl
- 0000003D  E2 F1			Loop L0
+ 00000063  B9 00000034		mov ecx, 52
+ 00000068  B2 00		mov dl, 0
+ 0000006A  B0 01		mov al, 1
+ 0000006C  BE 00000000		mov esi, 0
+ 00000071				L0:
+ 00000071  88 86 00000000 R			mov Deck[esi], al
+ 00000077  FE C0				inc al
+ 00000079  83 C6 01				add esi,TYPE Deck
+ 0000007C  FE C2				inc dl
+ 0000007E  E2 F1			Loop L0
 
- 0000003F  B9 00000068		mov ecx, 104
+ 00000080  B9 00000068		mov ecx, 104
 
- 00000044				S1:
- 00000044  B8 00000035				mov eax,53
- 00000049  E8 00000000 E			call randomrange
- 0000004E  8B F0				mov esi, eax
- 00000050  8A 9E 00000000 R			mov bl,deck[esi]
- 00000056  A0 00000000 R			mov al, deck[0]
- 0000005B  86 C3				xchg al,bl
- 0000005D  88 9E 00000000 R			mov deck[esi], bl
- 00000063  A2 00000000 R			mov deck[0], al
- 00000068  E2 DA			Loop S1
+ 00000085				S1:
+ 00000085  B8 00000035				mov eax,53
+ 0000008A  E8 00000000 E			call randomrange
+ 0000008F  8B F0				mov esi, eax
+ 00000091  8A 9E 00000000 R			mov bl,Deck[esi]
+ 00000097  A0 00000000 R			mov al, Deck[0]
+ 0000009C  86 C3				xchg al,bl
+ 0000009E  88 9E 00000000 R			mov Deck[esi], bl
+ 000000A4  A2 00000000 R			mov Deck[0], al
+ 000000A9  E2 DA			Loop S1
 
- 0000006A  C3			ret
- 0000006B			Shuffel ENDP
+ 000000AB  C3			ret
+ 000000AC			Shuffel ENDP
 
 				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
- 0000006B			DealHand PROC																																							;
-				;	Recieves: Deck																																					;
+ 000000AC			DealHand PROC																																							;
+				;	Recieves: Deck																																						;
 				;	Returns: Nothing																																					;
-				;	Assigns cards from DeckSmall to PlayerHand/SpokHand																												;
-				;Procedure manipulates PlayerHand/SpokHand																																;
+				;	Assigns cards from Deck to PlayerHand/SpockHand																														;
+				;Procedure deals PlayerHand/SpockHand																																	;
 				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
- 0000006B  B9 00000002		mov ecx, 2
- 00000070  BE 00000000		mov esi, 0
- 00000075  BB 00000000		mov ebx, 0
+ 000000AC  B9 00000002		mov ecx, 2
+ 000000B1  BE 00000000		mov esi, 0
+ 000000B6  BB 00000000		mov ebx, 0
 
- 0000007A				H1:
- 0000007A  8A 83 00000000 R			mov al, deck[ebx]
- 00000080  88 86 00000034 R			mov PlayerHand[esi], al
- 00000086  83 C3 01				add ebx, TYPE deck
- 00000089  8A 83 00000000 R			mov al, deck [ebx]
- 0000008F  88 86 00000036 R			mov SpokHand[esi], al
- 00000095  83 C6 01				add esi, TYPE PlayerHand
- 00000098  83 C3 01				add ebx, TYPE deck
- 0000009B  E2 DD			Loop H1
- 0000009D  89 1D 0000003F R	mov DeckMark,EBX
- 000000A3  C3			ret
- 000000A4			DealHand ENDP
+ 000000BB				H1:
+ 000000BB  8A 83 00000000 R			mov al, Deck[ebx]
+ 000000C1  88 86 00000034 R			mov PlayerHand[esi], al
+ 000000C7  83 C3 01				add ebx, TYPE Deck
+ 000000CA  8A 83 00000000 R			mov al, Deck [ebx]
+ 000000D0  88 86 00000036 R			mov SpockHand[esi], al
+ 000000D6  83 C6 01				add esi, TYPE PlayerHand
+ 000000D9  83 C3 01				add ebx, TYPE Deck
+ 000000DC  E2 DD			Loop H1
+ 000000DE  89 1D 0000003D R	mov DeckMark,EBX
+ 000000E4  C3			ret
+ 000000E5			DealHand ENDP
 
 				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
- 000000A4			DealFlop PROC																																							;
-				;	Recieves: SmallDeck																																					;
+ 000000E5			DealFlop PROC																																							;
+				;	Recieves: Deck																																						;
 				;	Returns: Nothing																																					;
-				;	Assigns cards from DeckSmall to Flop																																;
-				;Procedure manipulates Flop																																				;
+				;	Assigns cards from Dek to Flop																																		;
+				;Procedure deals Flop																																					;
 				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
- 000000A4  B9 00000003		mov ecx, 3
- 000000A9  8B 1D 0000003F R	mov ebx, DeckMark
- 000000AF  BF 00000000		mov edi,0
+ 000000E5  B9 00000003		mov ecx, 3
+ 000000EA  8B 1D 0000003D R	mov ebx, DeckMark
+ 000000F0  BF 00000000		mov edi,0
 
- 000000B4				T1:
- 000000B4  8A 83 00000000 R			mov al, deck[ebx]
- 000000BA  88 87 00000038 R			mov table[edi], al
- 000000C0  83 C3 01				add ebx, TYPE deck
- 000000C3  83 C7 01				add edi, TYPE Table
- 000000C6  E2 EC			Loop T1
- 000000C8  89 3D 00000043 R	mov TableMark,edi
- 000000CE  89 1D 0000003F R	mov DeckMark,ebx
- 000000D4  C3			ret
- 000000D5			DealFlop ENDP
+ 000000F5				T1:
+ 000000F5  8A 83 00000000 R			mov al, Deck[ebx]
+ 000000FB  88 87 00000038 R			mov Table[edi], al
+ 00000101  83 C3 01				add ebx, TYPE Deck
+ 00000104  83 C7 01				add edi, TYPE Table
+ 00000107  E2 EC			Loop T1
+ 00000109  89 3D 00000041 R	mov TableMark,edi
+ 0000010F  89 1D 0000003D R	mov DeckMark,ebx
+ 00000115  C3			ret
+ 00000116			DealFlop ENDP
 
 				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
- 000000D5			DealTurn PROC																																							;
-				;	Recieves: SmallDeck																																					;
+ 00000116			DealTurn PROC																																							;
+				;	Recieves: Deck																																						;
 				;	Returns: Nothing																																					;
-				;	Assigns cards from DeckSmall to Turn																																;
-				;Procedure manipulates Turn																																				;
+				;	Assigns cards from Deck to Turn																																		;
+				;Procedure skips a card for burn and deals Turn																															;
 				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
- 000000D5  8B 1D 0000003F R	mov ebx, DeckMark
- 000000DB  83 C3 01		add ebx, TYPE Deck		;;;;;;;;;THIS IS THE BURN
- 000000DE  8B 3D 00000043 R	mov edi, TableMark
- 000000E4  8A 83 00000000 R	mov al, Deck[ebx]
- 000000EA  88 87 00000038 R	mov Table[edi],al
- 000000F0  83 C3 01		add ebx, TYPE Deck
- 000000F3  89 1D 0000003F R	mov DeckMark, EBX
- 000000F9  83 C7 01		add edi, TYPE Table
- 000000FC  89 3D 00000043 R	mov TableMark, edi
+ 00000116  8B 1D 0000003D R	mov ebx, DeckMark
+ 0000011C  83 C3 01		add ebx, TYPE Deck		;;;;;;;;;THIS IS THE BURN
+ 0000011F  8B 3D 00000041 R	mov edi, TableMark
+ 00000125  8A 83 00000000 R	mov al, Deck[ebx]
+ 0000012B  88 87 00000038 R	mov Table[edi],al
+ 00000131  83 C3 01		add ebx, TYPE Deck
+ 00000134  89 1D 0000003D R	mov DeckMark, EBX
+ 0000013A  83 C7 01		add edi, TYPE Table
+ 0000013D  89 3D 00000041 R	mov TableMark, edi
 
- 00000102  C3			ret
- 00000103			DealTurn ENDP
+ 00000143  C3			ret
+ 00000144			DealTurn ENDP
 
 				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
- 00000103			DealRiver PROC																																							;
-				;	Recieves: SmallDeck																																					;
+ 00000144			DealRiver PROC																																							;
+				;	Recieves: Deck																																						;
 				;	Returns: Nothing																																					;
-				;	Assigns cards from DeckSmall to River																																;
-				;Procedure manipulates River																																			;
+				;	Assigns cards from Deck to River																																	;
+				;Procedure skips a card from Deck for burn and deals River																												;
 				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
- 00000103  8B 1D 0000003F R	mov ebx, DeckMark
- 00000109  83 C3 01		add ebx, TYPE Deck		;;;;;;;;;THIS IS THE BURN
- 0000010C  8B 3D 00000043 R	mov edi, TableMark
- 00000112  8A 83 00000000 R	mov al, Deck[ebx]
- 00000118  88 87 00000038 R	mov Table[edi],al
+ 00000144  8B 1D 0000003D R	mov ebx, DeckMark
+ 0000014A  83 C3 01		add ebx, TYPE Deck		;;;;;;;;;THIS IS THE BURN
+ 0000014D  8B 3D 00000041 R	mov edi, TableMark
+ 00000153  8A 83 00000000 R	mov al, Deck[ebx]
+ 00000159  88 87 00000038 R	mov Table[edi],al
 
- 0000011E  C3			ret
- 0000011F			DealRiver ENDP
+ 0000015F  C3			ret
+ 00000160			DealRiver ENDP
+
+				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ 00000160			Ante PROC																																								;
+				;	Recieves: BigBlind, ChipsPlayer, ChipsSpock, ChipsTable,																											;
+				;	Returns: ChipsPlayer(modified) ChipsSpock(modified), ChipTable(modified)																							;
+				;	Big and Little blinds paid in for oppening bet																														;
+				;Procedure Checks to ensure that player and spock have the chips to make bet if not game end call win/lose, change the value of chips									;
+				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+
+				.if(BigBlind > 0)
+ 00000160  83 3D 00000051 R
+	   00		   *	    cmp    BigBlind, 000h
+ 00000167  76 28	   *	    jbe    @C0001
+ 00000169  C7 05 00000051 R		mov BigBlind, 0
+	   00000000
+					.if(ChipsPlayer < 25)
+ 00000173  83 3D 00000045 R
+	   19		   *	    cmp    ChipsPlayer, 019h
+ 0000017A  73 05	   *	    jae    @C0003
+ 0000017C  E8 00000094					call Lose
+						.endif
+					
+						.if(ChipsSpock < 50)
+ 00000181		   *@C0003:
+ 00000181  83 3D 00000049 R
+	   32		   *	    cmp    ChipsSpock, 032h
+ 00000188  73 23	   *	    jae    @C0005
+ 0000018A  E8 0000006C					call Win	
+						.endif
+
+						.else
+ 0000018F  EB 1C	   *	    jmp    @C0007
+ 00000191		   *@C0001:
+ 00000191  83 2D 00000045 R				sub ChipsPlayer, 25
+	   19
+ 00000198  83 05 0000004D R				add ChipsTable, 25
+	   19
+ 0000019F  83 2D 00000049 R				sub ChipsSpock, 50
+	   32
+ 000001A6  83 05 0000004D R				add ChipsTable, 50
+	   32
+					.endif
+ 000001AD		   *@C0007:
+ 000001AD		   *@C0005:
+
+					.if(BigBlind<1)
+ 000001AD  83 3D 00000051 R
+	   01		   *	    cmp    BigBlind, 001h
+ 000001B4  73 28	   *	    jae    @C0008
+ 000001B6  C7 05 00000051 R			mov BigBlind, 1
+	   00000001
+						.if(ChipsPlayer < 50)
+ 000001C0  83 3D 00000045 R
+	   32		   *	    cmp    ChipsPlayer, 032h
+ 000001C7  73 05	   *	    jae    @C000A
+ 000001C9  E8 00000047					call Lose
+						.endif
+					
+						.if(ChipsSpock < 25)
+ 000001CE		   *@C000A:
+ 000001CE  83 3D 00000049 R
+	   19		   *	    cmp    ChipsSpock, 019h
+ 000001D5  73 23	   *	    jae    @C000C
+ 000001D7  E8 0000001F					call Win	
+						.endif
+
+						.else
+ 000001DC  EB 1C	   *	    jmp    @C000E
+ 000001DE		   *@C0008:
+ 000001DE  83 2D 00000045 R				sub ChipsPlayer, 50
+	   32
+ 000001E5  83 05 0000004D R				add ChipsTable, 50
+	   32
+ 000001EC  83 2D 00000049 R				sub ChipsSpock, 25
+	   19
+ 000001F3  83 05 0000004D R				add ChipsTable, 25
+	   19
+					.endif
+ 000001FA		   *@C000E:
+ 000001FA		   *@C000C:
+
+ 000001FA  C3			ret
+ 000001FB			Ante ENDP
+				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ 000001FB			Win PROC																																								;
+				;	Recieves: PromptWinImage, PromptYouWin, PlayerChips																													;
+				;	Returns: Nothing																																					;
+				;	Display image and earnings, calls PlayAgain																															;
+				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ 000001FB  BA 000000D3 R		mov edx, OFFSET PromptWinImage
+ 00000200  E8 00000000 E		call WriteString
+ 00000205  8B 15 00000045 R		mov edx, ChipsPlayer
+ 0000020B  E8 00000000 E		call WriteString
+ 00000210  E8 0000001A			Call PlayAgain
+ 00000215			Win ENDP
+
+				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ 00000215			Lose PROC																																								;
+				;	Recieves: PromptLoseImage, PromptYouLose, PlayerChips																												;
+				;	Returns: Nothing																																					;
+				;	Display image and earnings, calls PlayAgain																															;
+				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ 00000215  BA 000000D4 R		mov edx, OFFSET PromptLoseImage
+ 0000021A  E8 00000000 E		call WriteString
+ 0000021F  8B 15 00000045 R		mov edx, ChipsPlayer
+ 00000225  E8 00000000 E		call WriteString
+ 0000022A  E8 00000000			Call PlayAgain
+ 0000022F			Lose ENDP
+
+				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ 0000022F			PlayAgain PROC																																							;
+				;	Recieves: PromptPlayAgain																																			;
+				;	Returns: Nothing																																					;
+				;	Asks if you want to PlayAgain, if y call main/if n invoke exitproccess/if else prompbadinput																		;
+				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ 0000022F  BA 0000009E R		mov edx, OFFSET PromptPlayAgain
+ 00000234  E8 00000000 E		call WriteString
+ 00000239  E8 00000000 E		call Readint
+						.if(eax==0)
+ 0000023E  0B C0	   *	    or	eax, eax
+ 00000240  75 09	   *	    jne    @C000F
+							INVOKE ExitProcess, 0
+ 00000242  6A 00	   *	    push   +000000000h
+ 00000244  E8 00000000 E   *	    call   ExitProcess
+						.elseif(eax==1)
+ 00000249  EB 16	   *	    jmp    @C0011
+ 0000024B		   *@C000F:
+ 0000024B  83 F8 01	   *	    cmp    eax, 001h
+ 0000024E  75 07	   *	    jne    @C0012
+ 00000250  E8 FFFFFDAB					call Main
+						.else
+ 00000255  EB 0A	   *	    jmp    @C0014
+ 00000257		   *@C0012:
+ 00000257  A0 000000D7 R				mov al, PromptBadInput
+ 0000025C  E8 FFFFFFCE					call PlayAgain
+						.endif
+ 00000261		   *@C0014:
+ 00000261		   *@C0011:
+ 00000261  C3			ret
+ 00000262			PlayAgain ENDP
 
 
+				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ 00000262			HandSpock PROC																																							;
+				;	Recieves: Table, SpockHand, FullHandSpock																															;
+				;	Returns: FullHandSpock																																				;
+				;	Adds Spock and table together to make a full hand of available cards																								;
+				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ 00000262  B8 00000000		mov eax, 0
+ 00000267  B9 00000005		mov ecx, 5
+ 0000026C				FSH1:	
+ 0000026C  8A 90 00000038 R			mov dl, table[eax]																						;FullSpockHand1
+ 00000272  88 90 00000055 R			mov FullHandSpock[eax],dl		
+ 00000278  83 C0 01				add eax, TYPE FullHandSpock
+ 0000027B  E2 EF			Loop FSH1																						
+ 0000027D  BB 00000000		mov ebx, 0
+ 00000282  B9 00000002		mov ecx, 2
+ 00000287				FSH2:																										;FullSpockHand2
+ 00000287  8A 93 00000036 R			mov dl, SpockHand[ebx]
+ 0000028D  88 90 00000055 R			mov FullHandSpock[eax],dl
+ 00000293  83 C0 01				add eax, TYPE FullHandSpock
+ 00000296  83 C3 01				add ebx, TYPE SpockHand
+ 00000299  E2 EC			Loop FSH2
+ 0000029B  C3			ret
+ 0000029C			HandSpock ENDP
+
+				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ 0000029C			HandPlayer PROC																																							;
+				;	Recieves: Table, PlayerHand, FullHandPlayer																															;
+				;	Returns: FullHandPlayer																																				;
+				;	Adds Player and table together to make a full hand of available cards																								;
+				;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ 0000029C  B8 00000000		mov eax, 0
+ 000002A1  B9 00000005		mov ecx, 5
+ 000002A6				FPH1:																									;FullPlayerHand1
+ 000002A6  8A 90 00000038 R			mov dl, table[eax]																						
+ 000002AC  88 90 0000005C R			mov FullHandPlayer[eax], dl
+ 000002B2  83 C0 01				add eax, TYPE FullHandPlayer
+ 000002B5  E2 EF			Loop FPH1																						
+ 000002B7  BB 00000000		mov ebx, 0
+ 000002BC  B9 00000002		mov ecx, 2
+ 000002C1				FPH2:																									;FullPlayerHand2
+ 000002C1  8A 93 00000034 R			mov dl, PlayerHand[ebx]																						
+ 000002C7  88 90 0000005C R			mov FullHandPlayer[eax], dl
+ 000002CD  83 C0 01				add eax, TYPE FullHandPlayer
+ 000002D0  BB 00000001				mov ebx, TYPE PlayerHand
+ 000002D5  E2 EA			Loop FPH2
+ 000002D7  C3			ret
+ 000002D8			HandPlayer ENDP
 
 
+ 000002D8			Bid1 PROC
+ 000002D8  C3				ret
+ 000002D9			Bid1 ENDP
 
 
+ 000002D9			Bid2 PROC
+ 000002D9  C3				ret
+ 000002DA			Bid2 ENDP
 
+
+ 000002DA			Bid3 PROC
+ 000002DA  C3				ret
+ 000002DB			Bid3 ENDP
+
+ 000002DB			CompareHand Proc
+ 000002DB  C3				ret
+ 000002DC			CompareHand ENDP
 
 
 				END main
-Microsoft (R) Macro Assembler Version 12.00.30501.0	    12/02/14 16:49:45
+
+
+
+
+
+
+
+
+
+Microsoft (R) Macro Assembler Version 12.00.30501.0	    12/04/14 16:24:01
 MASM Templat						     Symbols 2 - 1
 
 
@@ -285,26 +555,31 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 00000047 Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 0000011F Para	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000103 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000002DC Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
 
                 N a m e                 Type     Value    Attr
 
+Ante . . . . . . . . . . . . . .	P Near	 00000160 _TEXT	Length= 0000009B Public STDCALL
+Bid1 . . . . . . . . . . . . . .	P Near	 000002D8 _TEXT	Length= 00000001 Public STDCALL
+Bid2 . . . . . . . . . . . . . .	P Near	 000002D9 _TEXT	Length= 00000001 Public STDCALL
+Bid3 . . . . . . . . . . . . . .	P Near	 000002DA _TEXT	Length= 00000001 Public STDCALL
 CloseFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CompareHand  . . . . . . . . . .	P Near	 000002DB _TEXT	Length= 00000001 Public STDCALL
 CreateFileA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CreateOutputFile . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Crlf . . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-DealFlop . . . . . . . . . . . .	P Near	 000000A4 _TEXT	Length= 00000031 Public STDCALL
-  T1 . . . . . . . . . . . . . .	L Near	 000000B4 _TEXT	
-DealHand . . . . . . . . . . . .	P Near	 0000006B _TEXT	Length= 00000039 Public STDCALL
-  H1 . . . . . . . . . . . . . .	L Near	 0000007A _TEXT	
-DealRiver  . . . . . . . . . . .	P Near	 00000103 _TEXT	Length= 0000001C Public STDCALL
-DealTurn . . . . . . . . . . . .	P Near	 000000D5 _TEXT	Length= 0000002E Public STDCALL
+DealFlop . . . . . . . . . . . .	P Near	 000000E5 _TEXT	Length= 00000031 Public STDCALL
+  T1 . . . . . . . . . . . . . .	L Near	 000000F5 _TEXT	
+DealHand . . . . . . . . . . . .	P Near	 000000AC _TEXT	Length= 00000039 Public STDCALL
+  H1 . . . . . . . . . . . . . .	L Near	 000000BB _TEXT	
+DealRiver  . . . . . . . . . . .	P Near	 00000144 _TEXT	Length= 0000001C Public STDCALL
+DealTurn . . . . . . . . . . . .	P Near	 00000116 _TEXT	Length= 0000002E Public STDCALL
 Delay  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 DumpMem  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 DumpRegs . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -333,6 +608,12 @@ GetSystemTime  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 GetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 GetTickCount . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Gotoxy . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HandPlayer . . . . . . . . . . .	P Near	 0000029C _TEXT	Length= 0000003C Public STDCALL
+  FPH1 . . . . . . . . . . . . .	L Near	 000002A6 _TEXT	
+  FPH2 . . . . . . . . . . . . .	L Near	 000002C1 _TEXT	
+HandSpock  . . . . . . . . . . .	P Near	 00000262 _TEXT	Length= 0000003A Public STDCALL
+  FSH1 . . . . . . . . . . . . .	L Near	 0000026C _TEXT	
+  FSH2 . . . . . . . . . . . . .	L Near	 00000287 _TEXT	
 HeapAlloc  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 HeapCreate . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 HeapDestroy  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -340,6 +621,7 @@ HeapFree . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 HeapSize . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 IsDigit  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 LocalFree  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Lose . . . . . . . . . . . . . .	P Near	 00000215 _TEXT	Length= 0000001A Public STDCALL
 MessageBoxA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 MsgBoxAsk  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 MsgBox . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -347,6 +629,7 @@ OpenInputFile  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 ParseDecimal32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ParseInteger32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 PeekConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+PlayAgain  . . . . . . . . . . .	P Near	 0000022F _TEXT	Length= 00000033 Public STDCALL
 Random32 . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 RandomRange  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Randomize  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -373,9 +656,9 @@ SetFilePointer . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 SetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ShowFPUStack . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-Shuffel  . . . . . . . . . . . .	P Near	 00000022 _TEXT	Length= 00000049 Public STDCALL
-  L0 . . . . . . . . . . . . . .	L Near	 00000030 _TEXT	
-  S1 . . . . . . . . . . . . . .	L Near	 00000044 _TEXT	
+Shuffel  . . . . . . . . . . . .	P Near	 00000063 _TEXT	Length= 00000049 Public STDCALL
+  L0 . . . . . . . . . . . . . .	L Near	 00000071 _TEXT	
+  S1 . . . . . . . . . . . . . .	L Near	 00000085 _TEXT	
 Sleep  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 StrLength  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Str_compare  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -385,6 +668,7 @@ Str_trim . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 Str_ucase  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SystemTimeToFileTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WaitMsg  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Win  . . . . . . . . . . . . . .	P Near	 000001FB _TEXT	Length= 0000001A Public STDCALL
 WriteBinB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteBin . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteChar  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -402,8 +686,8 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000022 Public STDCALL
-  G1 . . . . . . . . . . . . . .	L Near	 00000000 _TEXT	
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000063 Public STDCALL
+  G1 . . . . . . . . . . . . . .	L Near	 00000014 _TEXT	
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
@@ -423,14 +707,17 @@ Symbols:
 @fardata . . . . . . . . . . . .	Text   	 FLAT
 @stack . . . . . . . . . . . . .	Text   	 FLAT
 ALT_MASK . . . . . . . . . . . .	Number	 00000003h   
-Burn . . . . . . . . . . . . . .	Byte	 0000003D _DATA	
+BigBlind . . . . . . . . . . . .	DWord	 00000051 _DATA	
 CAPSLOCK_ON  . . . . . . . . . .	Number	 00000080h   
 CREATE_ALWAYS  . . . . . . . . .	Number	 00000002h   
 CREATE_NEW . . . . . . . . . . .	Number	 00000001h   
 CTRL_MASK  . . . . . . . . . . .	Number	 0000000Ch   
+ChipsPlayer  . . . . . . . . . .	DWord	 00000045 _DATA	
+ChipsSpock . . . . . . . . . . .	DWord	 00000049 _DATA	
+ChipsTable . . . . . . . . . . .	DWord	 0000004D _DATA	
 CreateFile . . . . . . . . . . .	Text   	 CreateFileA
 DO_NOT_SHARE . . . . . . . . . .	Number	 00000000h   
-DeckMark . . . . . . . . . . . .	DWord	 0000003F _DATA	
+DeckMark . . . . . . . . . . . .	DWord	 0000003D _DATA	
 Deck . . . . . . . . . . . . . .	Byte	 00000000 _DATA	
 ENABLE_ECHO_INPUT  . . . . . . .	Number	 00000004h   
 ENABLE_LINE_INPUT  . . . . . . .	Number	 00000002h   
@@ -469,6 +756,8 @@ FOCUS_EVENT  . . . . . . . . . .	Number	 00000010h
 FORMAT_MESSAGE_ALLOCATE_BUFFER .	Number	 00000100h   
 FORMAT_MESSAGE_FROM_SYSTEM . . .	Number	 00001000h   
 FormatMessage  . . . . . . . . .	Text   	 FormatMessageA
+FullHandPlayer . . . . . . . . .	Byte	 0000005C _DATA	
+FullHandSpock  . . . . . . . . .	Byte	 00000055 _DATA	
 GENERIC_ALL  . . . . . . . . . .	Number	 10000000h   
 GENERIC_EXECUTE  . . . . . . . .	Number	 20000000h   
 GENERIC_READ . . . . . . . . . .	Number	 -80000000h   
@@ -531,6 +820,14 @@ OPEN_ALWAYS  . . . . . . . . . .	Number	 00000004h
 OPEN_EXISTING  . . . . . . . . .	Number	 00000003h   
 PeekConsoleInput . . . . . . . .	Text   	 PeekConsoleInputA
 PlayerHand . . . . . . . . . . .	Byte	 00000034 _DATA	
+PromptBadInput . . . . . . . . .	Byte	 000000D7 _DATA	
+PromptChipsPlayer  . . . . . . .	Byte	 000000D5 _DATA	
+PromptChipsSpock . . . . . . . .	Byte	 000000D6 _DATA	
+PromptLoseImage  . . . . . . . .	Byte	 000000D4 _DATA	
+PromptPlayAgain  . . . . . . . .	Byte	 0000009E _DATA	
+PromptWinImage . . . . . . . . .	Byte	 000000D3 _DATA	
+PromptYouLose  . . . . . . . . .	Byte	 0000007F _DATA	
+PromptYouWin . . . . . . . . . .	Byte	 00000063 _DATA	
 RIGHT_ALT_PRESSED  . . . . . . .	Number	 00000001h   
 RIGHT_CTRL_PRESSED . . . . . . .	Number	 00000004h   
 ReadConsoleInput . . . . . . . .	Text   	 ReadConsoleInputA
@@ -542,11 +839,11 @@ STD_ERROR_HANDLE . . . . . . . .	Number	 -0000000Ch
 STD_INPUT_HANDLE . . . . . . . .	Number	 -0000000Ah   
 STD_OUTPUT_HANDLE  . . . . . . .	Number	 -0000000Bh   
 SetConsoleTitle  . . . . . . . .	Text   	 SetConsoleTitleA
-SpokHand . . . . . . . . . . . .	Byte	 00000036 _DATA	
+SpockHand  . . . . . . . . . . .	Byte	 00000036 _DATA	
 TAB  . . . . . . . . . . . . . .	Number	 00000009h   
 TRUE . . . . . . . . . . . . . .	Number	 00000001h   
 TRUNCATE_EXISTING  . . . . . . .	Number	 00000005h   
-TableMark  . . . . . . . . . . .	DWord	 00000043 _DATA	
+TableMark  . . . . . . . . . . .	DWord	 00000041 _DATA	
 Table  . . . . . . . . . . . . .	Byte	 00000038 _DATA	
 VK_11  . . . . . . . . . . . . .	Number	 000000BDh   
 VK_12  . . . . . . . . . . . . .	Number	 000000BBh   
