@@ -16,6 +16,8 @@ Card STRUCT																																							    ;
 Card ENDS																																								;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
+	var1 DWORD 0
+	var2 DWORD 0
 
 	cards1 Card <0,0>
 	cards2 Card <0,0>
@@ -33,22 +35,40 @@ Card ENDS																																								;
 	cardp6 Card <0,0>
 	cardp7 Card <0,0>
 
+	StraightS byte 7 dup (0)
+	StraightP byte 7 dup (0)
+
 	isSpadeP DWORD 0
 	isHeartP DWORD 0
 	isClubP	DWORD 0
 	isDimondP DWORD 0
 	isFlushP DWORD 0
-
 	isSpadeS DWORD 0
 	isHeartS DWORD 0
 	isClubS DWORD 0
 	isDimondS DWORD 0
 	isFlushS DWORD 0
-
 	isStraightS DWORD 0
 	isStraightP DWORD 0
-	StraightS byte 7 dup (0)
-	StraightP byte 7 dup (0)
+
+	RFp DWORD 0
+	RFs DWORD 0
+	HighFourS byte 0
+	HighFourP byte 0
+	HighThreeS byte 0
+	HighThreeP byte 0
+	High2PairS byte 0
+	High2PairP byte 0
+	Low2PairS byte 0
+	Low2PairP byte 0
+	PairS byte 0
+	PairP byte 0
+	HighPairS byte 0
+	HighPairP byte 0
+	HighSts byte 0
+	HighStp byte 0
+	HighCards byte 0
+	HighCardp byte 0
 
 	PlayerRoyal DWORD 0
 	PlayerStraightFlush DWORD 0
@@ -59,7 +79,13 @@ Card ENDS																																								;
 	PlayerThree DWORD 0
 	PlayerTwoPair DWORD 0
 	PlayerOnePair DWORD 0
-	PlayerHighCard DWORD 0
+	PlayerHandValue DWORD 0
+	ChipsCall DWORD 0
+	ChipsRaise DWORD 0
+	SpockBet DWORD 0
+	PlayerBet DWORD 0
+	FoldS DWORD 0
+	FoldP DWORD 0
 
 	SpockRoyal DWORD 0
 	SpockStraightFlush DWORD 0
@@ -70,7 +96,7 @@ Card ENDS																																								;
 	SpockThree DWORD 0
 	SpockTwoPair DWORD 0
 	SpockOnePair DWORD 0
-	SpockHighCard DWORD 0
+	SpockHandValue DWORD 0
 
 Deck byte 52 dup (?)
 
@@ -91,30 +117,41 @@ FullHandPlayer BYTE 7 dup (0)
 
 PromptYouWin byte "You Win, your earning are: ", 0
 PromptYouLose byte "You Lose, you walk away with: ", 0
-PromptPlayAgain byte "Would you like to play again 1 for yes or 0 for no:  "
-PromptWinImage byte "?"
-PromptLoseImage byte "?"
-PromptChipsPlayer byte "?"
-PromptChipsSpock byte "?"
-PromptBadInput byte "That is not a valid choice, please try again"
-
+PromptPlayAgain byte "Would you like to play again 1 for yes or 0 for no:  ",0
+PromptWinImage byte "?",0
+PromptLoseImage byte "?",0
+PromptChipsPlayer byte "?",0
+PromptChipsSpock byte "?",0
+PromptBadInput byte "That is not a valid choice, please try again",0
+PromptSpockTurn byte "Spocks Turn To bet",0
+PromptSpockBet byte "Spock Bets: ",0
+PromptSpockRaise byte "Spock Raises: ",0
+PromptSpockCall byte "Spock Calls",0
+PromptSpockFold byte "Spock Folds",0
+PromptPlayerBet byte "Would you like to bet<1>, call<2>, or fold<0>",0
+PromptPlayerSecond byte "Would you like to raise<1>, call<2>, or fold<0>",0
+PromptPlayerTurn byte "It is your turn",0
+PromptPlayerRaise byte "Ammount to raise: ",0
+PromptPlayerCall byte "Call",0
+PromptPlayerFold byte "Fold",0
+PromptPlayerNotEnoughChips byte "You do not have enough chips for that",0
 
 .code
 main PROC
-	mov ChipsPlayer, 100
-	mov ChipsSpock, 100
+	mov ChipsPlayer, 1000
+	mov ChipsSpock, 1000
 	G1:
 		Call Ante
 		Call Shuffel
 		Call DealHand
 		Call HandSpock
-		Call Bid1
+		Call Bid
 		Call DealFlop
 		Call HandSpock
-		Call Bid2
+		Call Bid
 		Call DealTurn
 		Call HandSpock
-		Call Bid3
+		Call Bid
 		Call DealRiver
 		Call HandSpock
 		Call HandPlayer
@@ -130,6 +167,26 @@ Shuffel PROC																																							;
 ;	Returns: Full/shuffled Deck																																			;
 ;Adds 52 cards to the Deck 13 from each suit and shuffles them		Values 1-13 =Spades 14-26 Hearts 27-39 Clubs 40-52													;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+
+mov ecx, 7
+mov al, 60
+mov esi, 0
+	EmptyHands:
+		mov StraightS[esi], al
+		mov StraightP[esi], al
+		add al, 2
+		inc esi
+	Loop EmptyHands
+
+mov ecx, 5
+mov al, 70
+mov esi, 0
+	EmptyTable:
+		mov Table[esi],al
+		add al, 2
+		inc esi
+	Loop EmptyTable
+
 mov ecx, 52
 mov dl, 0
 mov al, 1
@@ -251,7 +308,7 @@ Ante PROC																																								;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 .if(BigBlind > 0)
-	mov BigBlind, 0
+	
 	.if(ChipsPlayer < 25)
 			call Lose
 		.endif
@@ -259,16 +316,14 @@ Ante PROC																																								;
 		.if(ChipsSpock < 50)
 			call Win	
 		.endif
+	
+		sub ChipsPlayer, 25
+		add ChipsTable, 25
+		sub ChipsSpock, 50
+		add ChipsTable, 50
 
-		.else
-			sub ChipsPlayer, 25
-			add ChipsTable, 25
-			sub ChipsSpock, 50
-			add ChipsTable, 50
-	.endif
-
-	.if(BigBlind<1)
-		mov BigBlind, 1
+	.elseif (BigBlind<1)
+	
 		.if(ChipsPlayer < 50)
 			call Lose
 		.endif
@@ -276,13 +331,20 @@ Ante PROC																																								;
 		.if(ChipsSpock < 25)
 			call Win	
 		.endif
-
-		.else
+	
 			sub ChipsPlayer, 50
 			add ChipsTable, 50
 			sub ChipsSpock, 25
 			add ChipsTable, 25
-	.endif
+.endif
+
+mov eax, BigBlind
+.if(BigBlind > 0)
+	mov eax, 0
+.else
+	mov eax, 1
+.endif
+mov bigblind,eax
 
 ret
 Ante ENDP
@@ -294,8 +356,12 @@ Win PROC																																								;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 	mov edx, OFFSET PromptWinImage
 	call WriteString
-	mov edx, ChipsPlayer
+	call CRLF
+	mov edx, OFFSET PromptYouWin
 	call WriteString
+	mov eax, ChipsPlayer
+	call WriteInt   
+	call CRLF
 	Call PlayAgain
 Win ENDP
 
@@ -307,8 +373,12 @@ Lose PROC																																								;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 	mov edx, OFFSET PromptLoseImage
 	call WriteString
-	mov edx, ChipsPlayer
+	call CRLF
+	mov edx, OFFSET PromptYouLose
 	call WriteString
+	mov eax, ChipsPlayer
+	call WriteInt   
+	call CRLF
 	Call PlayAgain
 Lose ENDP
 
@@ -538,27 +608,515 @@ mov cardp7.value,al
 HandPlayer ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-Bid1 PROC
+Bid PROC
+mov ChipsCall, 0
+	call HandValue
+.if(FoldS == 1)
 	ret
-Bid1 ENDP
+.elseif(FoldP == 1)
+	ret
+.elseif(bigblind == 1) ;spock bid first
+	mov edx, OFFSET PromptSpockTurn
+	call WriteString
+	call CRLF
+		.if(SpockHandValue > 8)
+			mov edi, ChipsSpock
+			sub ChipsSpock, edi
+			mov SpockBet,edi
+			add ChipsTable, edi
+			mov ChipsCall, edi
+			
+			mov edx, OFFSET PromptSpockBet
+			call WriteString
+			mov eax, edi
+			call writeint
+			call CRLF
+
+		.elseif(SpockHandValue > 4)
+			.if(ChipsSpock < 100)
+				mov edi, ChipsSpock
+				sub ChipsSpock, edi
+				mov SpockBet,edi
+				add ChipsTable, edi
+				mov ChipsCall, edi	
+				
+				mov edx, OFFSET PromptSpockBet
+				call WriteString
+				mov eax, edi
+				call writeint
+				call CRLF		
+			
+			.else
+				mov edi, 100
+				sub ChipsSpock, edi
+				mov SpockBet,edi
+				add ChipsTable, edi
+				mov ChipsCall, edi
+
+				mov edx, OFFSET PromptSpockBet
+				call WriteString
+				mov eax, edi
+				call writeint
+				call CRLF
+
+			.endif
+		.elseif(SpockHandValue > 1)
+			.if(ChipsSpock < 50)
+				mov edi, ChipsSpock
+				sub ChipsSpock, edi
+				mov SpockBet,edi
+				add ChipsTable, edi
+				mov ChipsCall, edi
+
+				mov edx, OFFSET PromptSpockBet
+				call WriteString
+				mov eax, edi
+				call writeint
+				call CRLF
+
+			.else
+				mov edi, 50
+				sub ChipsSpock, edi
+				mov SpockBet,edi
+				add ChipsTable, edi
+				mov ChipsCall, edi
+
+				mov edx, OFFSET PromptSpockBet
+				call WriteString
+				mov eax, edi
+				call writeint
+				call CRLF
+
+			.endif
+		.elseif(HighCardS > 4)
+			.if(ChipsSpock < 25)
+				mov edi, ChipsSpock
+				sub ChipsSpock, edi
+				mov SpockBet,edi
+				add ChipsTable, edi
+				mov ChipsCall, edi
+
+				mov edx, OFFSET PromptSpockBet
+				call WriteString
+				mov eax, edi
+				call writeint
+				call CRLF
+
+			.else
+				mov edi, 25
+				sub ChipsSpock, edi
+				mov SpockBet, edi
+				add ChipsTable, edi
+				mov ChipsCall, edi
+
+				mov edx, OFFSET PromptSpockBet
+				call WriteString
+				mov eax, edi
+				call writeint
+				call CRLF
+
+			.endif
+		.elseif(HighCardS < 5)
+			mov FoldS, 1
+
+			mov edx, OFFSET PromptSpockFold
+			call WriteString
+			call CRLF
+		.endif
+
+		mov edx, OFFSET PromptPlayerSecond
+		call WriteString
+		call CRLF
+			BadInput1:
+				Call ReadInt
+					.if(eax==1)
+						mov edx, OFFSET PromptPlayerRaise
+						Call WriteString
+						call readint
+						call CRLF
+						mov ChipsCall, eax
+						mov esi, ChipsCall
+						add eax, esi
+						sub ChipsPlayer, eax
+						add ChipsTable, eax
+						mov esi, SpockBet
+						sub eax, esi
+							.if(ChipsSpock < eax)
+								mov FoldS, 1
+								mov edx, OFFSET PromptSpockFold
+								call WriteString
+								call CRLF
+								ret
+							.else
+								sub ChipsSpock, eax
+								add ChipsTable, eax
+								mov edx, OFFSET PromptSpockCall
+								Call WriteString
+								call CRLF
+								ret
+							.endif
+					.elseif(eax==2)
+						mov edx, OFFSET PromptPlayerCall
+						Call WriteString
+						call CRLF
+						mov eax, ChipsCall
+						sub ChipsPlayer, eax
+						add ChipsTable, eax
+						ret
+					.elseif(eax==0)
+						mov FoldP, 1
+						mov edx, OFFSET PromptPlayerFold
+						call WriteString
+						call CRLF
+						ret
+					.else
+						mov edx, OFFSET PromptBadInput
+						Call WriteString
+						call CRLF
+						jmp BadInput1
+					.endif
+	
+	.elseif(BigBlind==0)												;player turn
+		mov edx, OFFSET PromptPlayerTurn
+		call WriteString
+		call CRLF
+		mov edx, OFFSET PromptPlayerBet
+		call WriteString
+		call CRLF
+			BadInput:
+				Call ReadInt
+					.if(eax==1)
+						mov edx, OFFSET PromptPlayerRaise
+						Call WriteString
+						call readint
+						call CRLF
+						sub ChipsPlayer, eax
+						add ChipsTable, eax
+						mov ChipsCall, eax
+						add eax, 100
+
+							.if(ChipsSpock < edi)
+								mov FoldS, 1
+								mov edx, OFFSET PromptSpockFold
+								call WriteString
+								call CRLF
+								ret
+							.elseif(SpockHandValue < 1)
+										.if(SpockHandValue > 8)
+											mov edi, ChipsCall
+											add edi, 50
+											sub ChipsSpock, edi
+											mov SpockBet,edi
+											add ChipsTable, edi
+											mov ChipsCall, edi
+			
+											mov edx, OFFSET PromptSpockBet
+											call WriteString
+											mov eax, edi
+											call writeint
+											call CRLF
+
+										.elseif(SpockHandValue > 4)
+											mov edi, ChipsCall
+											add edi, 50
+											.if(ChipsSpock < edi)
+												mov edi, ChipsSpock
+												mov edi, ChipsCall
+												add edi, 50
+												sub ChipsSpock, edi
+												mov SpockBet,edi
+												add ChipsTable, edi
+												mov ChipsCall, edi
+			
+												mov edx, OFFSET PromptSpockBet
+												call WriteString
+												mov eax, edi
+												call writeint
+												call CRLF		
+			
+											.else
+												mov edi, 50
+												sub ChipsSpock, edi
+												mov SpockBet,edi
+												add ChipsTable, edi
+												mov ChipsCall, edi
+
+												mov edx, OFFSET PromptSpockBet
+												call WriteString
+												mov eax, edi
+												call writeint
+												call CRLF
+
+											.endif
+										.elseif(SpockHandValue > 1)
+											mov edi, ChipsCall
+											add edi, 25
+											.if(ChipsSpock < edi)
+												mov edi, ChipsSpock
+												sub ChipsSpock, edi
+												mov SpockBet,edi
+												add ChipsTable, edi
+												mov ChipsCall, edi
+
+												mov edx, OFFSET PromptSpockBet
+												call WriteString
+												mov eax, edi
+												call writeint
+												call CRLF
+
+											.else
+												mov edi, 25
+												sub ChipsSpock, edi
+												mov SpockBet,edi
+												add ChipsTable, edi
+												mov ChipsCall, edi
+
+												mov edx, OFFSET PromptSpockBet
+												call WriteString
+												mov eax, edi
+												call writeint
+												call CRLF
+
+											.endif
+										.elseif(HighCardS > 4)
+										mov edi, ChipsCall
+											.if(ChipsSpock < edi)
+												mov edi, ChipsSpock
+												sub ChipsSpock, edi
+												mov SpockBet,edi
+												add ChipsTable, edi
+												mov ChipsCall, edi
+
+												mov edx, OFFSET PromptSpockCall
+												call WriteString
+												mov eax, edi
+												call writeint
+												call CRLF
+
+											.else
+												mov edi, ChipsCall
+												sub ChipsSpock, edi
+												mov SpockBet, edi
+												add ChipsTable, edi
+												mov ChipsCall, edi
+
+												mov edx, OFFSET PromptSpockCall
+												call WriteString
+												mov eax, edi
+												call writeint
+												call CRLF
+				
+											.endif
+										.elseif(HighCardS < 5)
+											mov FoldS, 1
+											mov edx, OFFSET PromptSpockFold
+											call WriteString
+											call CRLF
+										.endif
+							
+							.elseif(SpockHandValue > 0)
+								mov edi, ChipsCall
+								sub ChipsSpock, edi
+								add ChipsTable, edi
+								mov edx, OFFSET PromptSpockCall
+								call WriteString
+								call CRLF			
+
+							.endif
+						ret
+
+					.elseif(eax==2)
+						mov edx, OFFSET PromptPlayerCall
+						Call WriteString
+						call CRLF
+						mov eax, ChipsCall
+						sub ChipsPlayer, eax
+						add ChipsTable, eax
+						ret
+					.elseif(eax==0)
+						mov FoldP, 1
+						mov edx, OFFSET PromptPlayerFold
+						call WriteString
+						call CRLF
+						ret
+					.else
+						mov edx, OFFSET PromptBadInput
+						Call WriteString
+						call CRLF
+						jmp BadInput
+					.endif
+.endif
+
+
+	ret
+Bid ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-Bid2 PROC
-	ret
-Bid2 ENDP
-;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+HandValue PROC
 
-;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-Bid3 PROC
+mov isSpadeP, 0
+mov isHeartP, 0
+mov isClubP, 0
+mov isDimondP, 0
+mov isFlushP, 0
+mov isSpadeS, 0
+mov isHeartS, 0
+mov isClubS, 0
+mov isDimondS, 0
+mov isFlushS, 0
+mov isStraightS, 0
+mov isStraightP, 0
+
+mov RFp, 0
+mov RFs, 0
+mov HighFourS, 0
+mov HighFourP, 0
+mov HighThreeS, 0
+mov HighThreeP, 0
+mov High2PairS, 0
+mov High2PairP, 0
+mov Low2PairS, 0
+mov Low2PairP, 0
+mov PairS, 0
+mov PairP, 0
+mov HighPairS, 0
+mov HighPairP, 0
+mov HighSts, 0
+mov HighStp, 0
+mov HighCards, 0
+mov HighCardp, 0
+
+mov PlayerRoyal, 0
+mov PlayerStraightFlush, 0
+mov PlayerFour, 0
+mov PlayerFull, 0
+mov PlayerFlush, 0
+mov PlayerStraight, 0
+mov PlayerThree, 0
+mov PlayerTwoPair, 0
+mov PlayerOnePair, 0
+mov PlayerHandValue, 0
+
+mov SpockRoyal, 0
+mov SpockStraightFlush, 0
+mov SpockFour, 0
+mov SpockFull, 0
+mov SpockFlush, 0
+mov SpockStraight, 0
+mov SpockThree, 0
+mov SpockTwoPair, 0
+mov SpockOnePair, 0
+mov SpockHandValue, 0
+
+	call IsAFlush
+	call IsAStraight
+	call FourKind
+	call ThreeKind
+	call TwoPair
+	call FullHouse
+	Call HighCard
+
+	.if(SpockRoyal > 0)
+		mov SpockHandValue, 9
+		.elseif(SpockStraightFlush > 0)
+			mov SpockHandValue, 8
+		.elseif(SpockFour > 0)
+			mov SpockHandValue, 7
+		.elseif(SpockFull > 0)
+			mov SpockHandValue, 6
+		.elseif(SpockFlush > 0)
+			mov SpockHandValue, 5
+		.elseif(SpockStraight > 0)
+			mov SpockHandValue, 4
+		.elseif(SpockThree > 0)
+			mov SpockHandValue, 3
+		.elseif(SpockTwoPair > 0)
+			mov SpockHandValue, 2
+		.elseif(SpockOnePair > 0)
+			mov SpockHandValue, 1
+		.else
+			mov SpockHandValue,0
+	.endif
+
+	.if(PlayerRoyal > 0)
+		mov PlayerHandValue, 9
+		.elseif(PlayerStraightFlush > 0)
+			mov PlayerHandValue, 8
+		.elseif(PlayerFour > 0)
+			mov PlayerHandValue, 7
+		.elseif(PlayerFull > 0)
+			mov PlayerHandValue, 6
+		.elseif(PlayerFlush > 0)
+			mov PlayerHandValue, 5
+		.elseif(PlayerStraight > 0)
+			mov PlayerHandValue, 4
+		.elseif(PlayerThree > 0)
+			mov PlayerHandValue, 3
+		.elseif(PlayerTwoPair > 0)
+			mov PlayerHandValue, 2
+		.elseif(PlayerOnePair > 0)
+			mov PlayerHandValue, 1
+		.else
+			mov PlayerHandValue,0
+	.endif 
+
 	ret
-Bid3 ENDP
+HandValue ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 CompareHand Proc
-	call IsAFlush
-	call IsAStraight
+
+
+
+	Call HandValue
+	mov esi, PlayerHandValue
+	mov edi, SpockHandValue
+
+	.if(FoldS==1)
+	mov SpockHandValue,0
+	mov HighCards,0
+.endif
+
+.if(FoldP==1)
+	mov PlayerHandValue,0
+	mov HighCardP,0
+.endif
+
+	.if(esi>edi)
+		mov eax, ChipsTable
+		add ChipsPlayer, eax
+		mov ChipsTable, 0
+
+	.elseif(edi>esi)
+		mov eax, ChipsTable
+		add ChipsSpock, eax
+		mov ChipsTable, 0
+	.else
+		mov al, HighCardp
+		mov bl, Highcards
+			.if(al>bl)
+				mov eax, ChipsTable
+				add ChipsPlayer, eax
+				mov ChipsTable, 0
+			.elseif(bl>al)
+				mov eax, ChipsTable
+				add ChipsSpock, eax
+				mov ChipsTable, 0
+			.elseif(al==bl)
+				mov eax, ChipsTable
+				mov ebx, 2
+				sub edx, edx
+				div ebx
+				add ChipsSpock, eax
+				add ChipsPlayer, eax
+				mov ChipsTable, 0
+			.endif
+
+	.endif
+	mov FoldP, 0
+	mov FoldS, 0
 	ret
 CompareHand ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
@@ -666,6 +1224,9 @@ IsAFlush Proc
 	.if(IsDimondS>4)
 		mov isFlushS, 1
 	.endif
+	.if(isFlushS>0)
+		mov SpockFlush,1
+	.endif
 
 ;Player Check
 	.if (cardp1.suit == 1)
@@ -768,6 +1329,11 @@ IsAFlush Proc
 	.if(IsDimondP>4)
 		mov isFlushP, 1
 	.endif
+
+	.if(isFlushP>0)
+		mov PlayerFlush, 1
+	.endif
+
 ret
 IsAFlush ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
@@ -987,108 +1553,299 @@ mov al, cards7.value
 .endif
 mov straights[6], al
 
-mov ecx,6
-mov edi,6
+mov ecx,6 
+ mov edi,6 
+ mov esi,0 
+ 	 
+ 	SS1: 
+ 		mov edx,esi 
+ 		inc edx 
+ 		push ecx 
+ 		mov ecx, edi 
+ 			SS2: 
+ 				mov al, straights[esi] 
+ 				mov bl, straights[edx] 
+ 					.if (al < bl) 
+ 						xchg al, bl 
+ 						mov straights[esi],al 
+ 						mov straights[edx],bl 
+ 					.endif  
+ 				inc edx 
+ 			Loop SS2 
+ 		pop ecx 
+ 		inc esi		 
+ 		dec edi 
+ 	Loop SS1 
+
 mov esi,0
-	
-	SS1:
-		mov edx,esi
-		inc edx
-		push ecx
-		mov ecx, edi
-			SS2:
-				mov al, straights[esi]
-				mov bl, straights[edx]
-					.if (al < bl)
-						xchg al, bl
-						mov straights[esi],al
-						mov straights[edx],bl
-					.endif 
-				inc edx
-			Loop SS2
-		pop ecx
-		inc esi		
-		dec edi
-	Loop SS1
-	
-mov al, straights[0]
-mov bl, straights[1]
+mov edi,1
+	mov al, straights[esi]
+	mov bl, straights[edi]
+	mov var1, esi
+	mov var2, edi
+	.if(al==bl)
+		inc edi
+		mov bl, straights[edi]
+	.endif
+	.if(al==bl)
+		inc edi
+		mov bl, straights[edi]
+	.endif
 	sub al,bl
-	.if(al==1)
-		mov al, straights[1]
-		mov bl, straights[2]
-		sub al,bl
-			.if(al==1)
-				mov al, straights[2]
-				mov bl, straights[3]
-				sub al,bl
-					.if(al==1)
-						mov al, straights[3]
-						mov bl, straights[4]
-						sub al,bl
-							.if(al==1)
-								mov al, straights[4]
-								mov bl, straights[5]
+	inc esi
+	inc edi
+		.if(al==bl)
+			mov al, straights[esi]
+			mov bl, straights[edi]
+			.if(al==bl)
+				inc edi
+				mov bl, straights[edi]
+			.endif
+			.if(al==bl)
+				inc edi
+				mov bl, straights[edi]
+			.endif
+			sub al,bl
+			inc esi
+			inc edi
+				.if(al==bl)
+					mov al, straights[esi]
+					mov bl, straights[edi]
+					.if(al==bl)
+						inc edi
+						mov bl, straights[edi]
+					.endif
+					.if(al==bl)
+						inc edi
+						mov bl, straights[edi]
+					.endif
+					sub al,bl
+					inc esi
+					inc edi
+						.if(al==bl)
+							mov al, straights[esi]
+								mov bl, straights[edi]
+								.if(al==bl)
+									inc edi
+									mov bl, straights[edi]
+								.endif
+								.if(al==bl)
+									inc edi
+									mov bl, straights[edi]
+								.endif
 								sub al,bl
-									.if(al==1)
-										inc isStraightS
+								inc esi
+								inc edi
+									.if(al==bl)
+										mov al, straights[esi]
+										mov bl, straights[edi]
+										.if(al==bl)
+											inc edi
+											mov bl, straights[edi]
+										.endif
+										.if(al==bl)
+											inc edi
+											mov bl, straights[edi]
+										.endif
+										sub al,bl
+										inc esi
+										inc edi
+											.if(al==bl)
+												inc isstraights
+												mov esi, var1
+												mov al, straights[esi]
+													.if(HighSts < al)
+														mov HighSts, al
+													.endif
+
 									.endif
 							.endif
 					.endif
 			.endif
 	.endif
-mov al, straights[1]
-mov bl, straights[2]
+mov esi, var1
+mov edi, var2
+inc esi
+inc edi
+
+	mov al, straights[esi]
+	mov bl, straights[edi]
+	mov esi, var1
+	mov edi, var2
+	.if(al==bl)
+		inc edi
+		mov bl, straights[edi]
+	.endif
+	.if(al==bl)
+		inc edi
+		mov bl, straights[edi]
+	.endif
 	sub al,bl
-	.if(al==1)
-		mov al, straights[2]
-		mov bl, straights[3]
-		sub al,bl
-			.if(al==1)
-				mov al, straights[3]
-				mov bl, straights[4]
-				sub al,bl
-					.if(al==1)
-						mov al, straights[4]
-						mov bl, straights[5]
-						sub al,bl
-							.if(al==1)
-								mov al, straights[5]
-								mov bl, straights[6]
+	inc esi
+	inc edi
+		.if(al==bl)
+			mov al, straights[esi]
+			mov bl, straights[edi]
+			.if(al==bl)
+				inc edi
+				mov bl, straights[edi]
+			.endif
+			.if(al==bl)
+				inc edi
+				mov bl, straights[edi]
+			.endif
+			sub al,bl
+			inc esi
+			inc edi
+				.if(al==bl)
+					mov al, straights[esi]
+					mov bl, straights[edi]
+					.if(al==bl)
+						inc edi
+						mov bl, straights[edi]
+					.endif
+					.if(al==bl)
+						inc edi
+						mov bl, straights[edi]
+					.endif
+					sub al,bl
+					inc esi
+					inc edi
+						.if(al==bl)
+							mov al, straights[esi]
+								mov bl, straights[edi]
+								.if(al==bl)
+									inc edi
+									mov bl, straights[edi]
+								.endif
+								.if(al==bl)
+									inc edi
+									mov bl, straights[edi]
+								.endif
 								sub al,bl
-									.if(al==1)
-										inc isStraightS
+								inc esi
+								inc edi
+									.if(al==bl)
+										mov al, straights[esi]
+										mov bl, straights[edi]
+										.if(al==bl)
+											inc edi
+											mov bl, straights[edi]
+										.endif
+										.if(al==bl)
+											inc edi
+											mov bl, straights[edi]
+										.endif
+										sub al,bl
+										inc esi
+										inc edi
+											.if(al==bl)
+												inc isstraights
+												mov esi, var1
+												mov al, straights[esi]
+													.if(HighSts < al)
+														mov HighSts, al
+													.endif
+									.endif
+							.endif
+					.endif
+			.endif
+	.endif
+mov esi,var1
+mov edi,var2
+inc esi
+inc edi
+
+	mov al, straights[esi]
+	mov bl, straights[edi]
+	.if(al==bl)
+		inc edi
+		mov bl, straights[edi]
+	.endif
+	.if(al==bl)
+		inc edi
+		mov bl, straights[edi]
+	.endif
+	sub al,bl
+	inc esi
+	inc edi
+		.if(al==bl)
+			mov al, straights[esi]
+			mov bl, straights[edi]
+			.if(al==bl)
+				inc edi
+				mov bl, straights[edi]
+			.endif
+			.if(al==bl)
+				inc edi
+				mov bl, straights[edi]
+			.endif
+			sub al,bl
+			inc esi
+			inc edi
+				.if(al==bl)
+					mov al, straights[esi]
+					mov bl, straights[edi]
+					.if(al==bl)
+						inc edi
+						mov bl, straights[edi]
+					.endif
+					.if(al==bl)
+						inc edi
+						mov bl, straights[edi]
+					.endif
+					sub al,bl
+					inc esi
+					inc edi
+						.if(al==bl)
+							mov al, straights[esi]
+								mov bl, straights[edi]
+								.if(al==bl)
+									inc edi
+									mov bl, straights[edi]
+								.endif
+								.if(al==bl)
+									inc edi
+									mov bl, straights[edi]
+								.endif
+								sub al,bl
+								inc esi
+								inc edi
+									.if(al==bl)
+										mov al, straights[esi]
+										mov bl, straights[edi]
+										.if(al==bl)
+											inc edi
+											mov bl, straights[edi]
+										.endif
+										.if(al==bl)
+											inc edi
+											mov bl, straights[edi]
+										.endif
+										sub al,bl
+										inc esi
+										inc edi
+											.if(al==bl)
+												inc isstraights
+												mov esi, var1
+												mov al, straights[esi]
+													.if(HighSts < al)
+														mov HighSts, al
+													.endif
 									.endif
 							.endif
 					.endif
 			.endif
 	.endif
 
-mov al, straights[2]
-mov bl, straights[3]
-sub al,bl
-	.if(al==1)
-		mov al, straights[3]
-		mov bl, straights[4]
-		sub al,bl
-			.if(al==1)
-				mov al, straights[4]
-				mov bl, straights[5]
-				sub al,bl
-					.if(al==1)
-						mov al, straights[5]
-						mov bl, straights[6]
-						sub al,bl
-							.if(al==1)
-								mov al, straights[6]
-								mov bl, straights[7]
-								sub al,bl
-									.if(al==1)
-										inc isStraightS
-									.endif
-							.endif
-					.endif
-			.endif
+	.if(HighSts==13)
+		.if(SpockFlush > 0)
+			mov SpockRoyal, 1
+		.endif
+	.endif
+
+	.if (HighStS > 0)
+		mov SpockStraight,1
 	.endif
 
 ;Player Straight
@@ -1308,122 +2065,393 @@ mov al, cardp7.value
 .endif
 mov straightp[6], al
 
-mov ecx,6
-mov edi,6
+mov ecx,6 
+ mov edi,6 
+ mov esi,0 
+ 	 
+ 	PS1: 
+ 		mov edx,esi 
+ 		inc edx 
+ 		push ecx 
+ 		mov ecx, edi 
+ 			PS2: 
+ 				mov al, straightp[esi] 
+ 				mov bl, straightp[edx] 
+ 					.if (al < bl) 
+ 						xchg al, bl 
+ 						mov straightp[esi],al 
+ 						mov straightp[edx],bl 
+ 					.endif  
+ 				inc edx 
+ 			Loop PS2 
+ 		pop ecx 
+ 		inc esi		 
+ 		dec edi 
+ 	Loop PS1 
+
+	
 mov esi,0
-	
-	PS1:
-		mov edx,esi
-		inc edx
-		push ecx
-		mov ecx, edi
-			PS2:
-				mov al, straightp[esi]
-				mov bl, straightp[edx]
-					.if (al < bl)
-						xchg al, bl
-						mov straightp[esi],al
-						mov straightp[edx],bl
-					.endif 
-				inc edx
-			Loop PS2
-		pop ecx
-		inc esi		
-		dec edi
-	Loop PS1
-	
-mov al, straightp[0]
-mov bl, straightp[1]
+mov edi,1
+	mov var1, esi
+	mov var2, edi
+	mov al, straightp[esi]
+	mov bl, straightp[edi]
+	.if(al==bl)
+		inc edi
+		mov bl, straightp[edi]
+	.endif
+	.if(al==bl)
+		inc edi
+		mov bl, straightp[edi]
+	.endif
 	sub al,bl
-	.if(al==1)
-		mov al, straightp[1]
-		mov bl, straightp[2]
-		sub al,bl
-			.if(al==1)
-				mov al, straightp[2]
-				mov bl, straightp[3]
-				sub al,bl
-					.if(al==1)
-						mov al, straightp[3]
-						mov bl, straightp[4]
-						sub al,bl
-							.if(al==1)
-								mov al, straightp[4]
-								mov bl, straightp[5]
+	inc esi
+	inc edi
+		.if(al==bl)
+			mov al, straightp[esi]
+			mov bl, straightp[edi]
+			.if(al==bl)
+				inc edi
+				mov bl, straightp[edi]
+			.endif
+			.if(al==bl)
+				inc edi
+				mov bl, straightp[edi]
+			.endif
+			sub al,bl
+			inc esi
+			inc edi
+				.if(al==bl)
+					mov al, straightp[esi]
+					mov bl, straightp[edi]
+					.if(al==bl)
+						inc edi
+						mov bl, straightp[edi]
+					.endif
+					.if(al==bl)
+						inc edi
+						mov bl, straightp[edi]
+					.endif
+					sub al,bl
+					inc esi
+					inc edi
+						.if(al==bl)
+							mov al, straightp[esi]
+								mov bl, straightp[edi]
+								.if(al==bl)
+									inc edi
+									mov bl, straightp[edi]
+								.endif
+								.if(al==bl)
+									inc edi
+									mov bl, straightp[edi]
+								.endif
 								sub al,bl
-									.if(al==1)
-										inc isstraightp
+								inc esi
+								inc edi
+									.if(al==bl)
+										mov al, straightp[esi]
+										mov bl, straightp[edi]
+										.if(al==bl)
+											inc edi
+											mov bl, straightp[edi]
+										.endif
+										.if(al==bl)
+											inc edi
+											mov bl, straightp[edi]
+										.endif
+										sub al,bl
+										inc esi
+										inc edi
+											.if(al==bl)
+												inc isstraightp
+												mov esi, var1
+												mov al, straightP[esi]
+													.if(HighStP < al)
+														mov HighStP, al
+													.endif
 									.endif
 							.endif
 					.endif
 			.endif
 	.endif
-mov al, straightp[1]
-mov bl, straightp[2]
+	mov esi, var1
+	mov edi, var2
+	inc esi
+	inc edi
+
+	mov var1, esi
+	mov var2, edi
+	mov al, straightp[esi]
+	mov bl, straightp[edi]
+	.if(al==bl)
+		inc edi
+		mov bl, straightp[edi]
+	.endif
+	.if(al==bl)
+		inc edi
+		mov bl, straightp[edi]
+	.endif
 	sub al,bl
-	.if(al==1)
-		mov al, straightp[2]
-		mov bl, straightp[3]
-		sub al,bl
-			.if(al==1)
-				mov al, straightp[3]
-				mov bl, straightp[4]
-				sub al,bl
-					.if(al==1)
-						mov al, straightp[4]
-						mov bl, straightp[5]
-						sub al,bl
-							.if(al==1)
-								mov al, straightp[5]
-								mov bl, straightp[6]
+	inc esi
+	inc edi
+		.if(al==bl)
+			mov al, straightp[esi]
+			mov bl, straightp[edi]
+			.if(al==bl)
+				inc edi
+				mov bl, straightp[edi]
+			.endif
+			.if(al==bl)
+				inc edi
+				mov bl, straightp[edi]
+			.endif
+			sub al,bl
+			inc esi
+			inc edi
+				.if(al==bl)
+					mov al, straightp[esi]
+					mov bl, straightp[edi]
+					.if(al==bl)
+						inc edi
+						mov bl, straightp[edi]
+					.endif
+					.if(al==bl)
+						inc edi
+						mov bl, straightp[edi]
+					.endif
+					sub al,bl
+					inc esi
+					inc edi
+						.if(al==bl)
+							mov al, straightp[esi]
+								mov bl, straightp[edi]
+								.if(al==bl)
+									inc edi
+									mov bl, straightp[edi]
+								.endif
+								.if(al==bl)
+									inc edi
+									mov bl, straightp[edi]
+								.endif
 								sub al,bl
-									.if(al==1)
-										inc isstraightp
+								inc esi
+								inc edi
+									.if(al==bl)
+										mov al, straightp[esi]
+										mov bl, straightp[edi]
+										.if(al==bl)
+											inc edi
+											mov bl, straightp[edi]
+										.endif
+										.if(al==bl)
+											inc edi
+											mov bl, straightp[edi]
+										.endif
+										sub al,bl
+										inc esi
+										inc edi
+											.if(al==bl)
+												inc isstraightp
+												mov esi, var1
+												mov al, straightp[esi]
+													.if(HighStp < al)
+														mov HighStp, al
+													.endif
+									.endif
+							.endif
+					.endif
+			.endif
+	.endif
+	mov esi, var1
+	mov edi,var2
+	inc esi
+	inc edi
+
+	mov var1,esi
+	mov var2, edi
+	mov al, straightp[esi]
+	mov bl, straightp[edi]
+	.if(al==bl)
+		inc edi
+		mov bl, straightp[edi]
+	.endif
+	.if(al==bl)
+		inc edi
+		mov bl, straightp[edi]
+	.endif
+	sub al,bl
+	inc esi
+	inc edi
+		.if(al==bl)
+			mov al, straightp[esi]
+			mov bl, straightp[edi]
+			.if(al==bl)
+				inc edi
+				mov bl, straightp[edi]
+			.endif
+			.if(al==bl)
+				inc edi
+				mov bl, straightp[edi]
+			.endif
+			sub al,bl
+			inc esi
+			inc edi
+				.if(al==bl)
+					mov al, straightp[esi]
+					mov bl, straightp[edi]
+					.if(al==bl)
+						inc edi
+						mov bl, straightp[edi]
+					.endif
+					.if(al==bl)
+						inc edi
+						mov bl, straightp[edi]
+					.endif
+					sub al,bl
+					inc esi
+					inc edi
+						.if(al==bl)
+							mov al, straightp[esi]
+								mov bl, straightp[edi]
+								.if(al==bl)
+									inc edi
+									mov bl, straightp[edi]
+								.endif
+								.if(al==bl)
+									inc edi
+									mov bl, straightp[edi]
+								.endif
+								sub al,bl
+								inc esi
+								inc edi
+									.if(al==bl)
+										mov al, straightp[esi]
+										mov bl, straightp[edi]
+										.if(al==bl)
+											inc edi
+											mov bl, straightp[edi]
+										.endif
+										.if(al==bl)
+											inc edi
+											mov bl, straightp[edi]
+										.endif
+										sub al,bl
+										inc esi
+										inc edi
+											.if(al==bl)
+												inc isstraightp
+												mov esi, var1
+												mov al, straightp[esi]
+													.if(HighStp < al)
+														mov HighStp, al
+													.endif
 									.endif
 							.endif
 					.endif
 			.endif
 	.endif
 
-mov al, straightp[2]
-mov bl, straightp[3]
-sub al,bl
-	.if(al==1)
-		mov al, straightp[3]
-		mov bl, straightp[4]
-		sub al,bl
-			.if(al==1)
-				mov al, straightp[4]
-				mov bl, straightp[5]
-				sub al,bl
-					.if(al==1)
-						mov al, straightp[5]
-						mov bl, straightp[6]
-						sub al,bl
-							.if(al==1)
-								mov al, straightp[6]
-								mov bl, straightp[7]
-								sub al,bl
-									.if(al==1)
-										inc isstraightp
-									.endif
-							.endif
-					.endif
-			.endif
+	.if(HighStP==13)
+		.if(PlayerFlush > 0)
+			mov PlayerRoyal, 1
+		.endif
 	.endif
+	.if (HighStP > 0)
+		mov PlayerStraight, 1
+	.endif
+
 ret
 IsAStraight ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-FourKind PROC
+ FourKind PROC
+mov ecx, 4
+mov esi,0
+mov edi,1
+	FKs:
+		mov al, straights[esi]
+		mov bl, straights[edi]
+		mov var1, esi
+		inc esi
+		mov var2, edi
+		inc edi
+			.if(al==bl)
+				mov al, straights[esi]
+				mov bl, straights[edi]
+				inc esi
+				inc edi
+					.if(al==bl)
+						mov al, straights[esi]
+						mov bl, straights[edi]
+						inc esi
+						inc edi
+							.if(al==bl)
+								mov SpockFour,1
+								mov al, straights[esi]
+								mov HighFourS, al
+								mov edi,var2
+								mov esi,var1
+								inc esi
+								inc edi
+							.endif
+					.endif
+			.endif
+	Loop FKS
 
+;Player
+
+	mov ecx, 4
+mov esi,0
+mov edi,1
+	FKp:
+		mov al, straightp[esi]
+		mov bl, straightp[edi]
+		mov var1, esi
+		inc esi
+		mov var2, edi
+		inc edi
+			.if(al==bl)
+				mov al, straightp[esi]
+				mov bl, straightp[edi]
+				inc esi
+				inc edi
+					.if(al==bl)
+						mov al, straightp[esi]
+						mov bl, straightp[edi]
+						inc esi
+						inc edi
+							.if(al==bl)
+								mov PlayerFour,1
+								mov al, straightp[esi]
+								mov HighFourP, al
+								mov edi,var2
+								mov esi,var1
+								inc esi
+								inc edi
+							.endif
+					.endif
+			.endif
+	Loop FKp
 ret
 FourKind ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 FullHouse PROC
+
+.if(HighThrees > 0)
+	.if(High2Pairs > 0)
+		mov SpockFull, 1
+	.endif
+.endif
+
+.if(HighThreep > 0)
+	.if(High2Pairp > 0)
+		mov PlayerFull, 1
+	.endif
+.endif
 
 ret
 FullHouse ENDP
@@ -1432,6 +2460,69 @@ FullHouse ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 ThreeKind PROC
 
+mov ecx,5
+mov esi,0
+mov edi,1
+
+	TKS:
+		mov var1, esi
+		mov var2, edi
+		mov al, straights[esi]
+		mov bl, straights[edi]
+			.if(al==bl)
+				inc esi
+				inc edi
+				mov al, straights[esi]
+				mov bl, straights[edi]
+					.if(al==bl)
+								mov esi, var1
+								mov al, straights[esi]
+									.if(HighThreeS < al)
+										mov HighThreeS,al
+							.endif
+					.endif
+			.endif
+		mov esi,var1
+		mov edi, var2
+		inc esi
+		inc edi
+	Loop TKS
+	.if(HighThreeS > 0)
+		mov SpockThree, 1
+	.endif
+
+;player
+
+mov ecx,5
+mov esi,0
+mov edi,1
+
+	TKP:
+		mov var1, esi
+		mov var2, edi
+		mov al, straightP[esi]
+		mov bl, straightP[edi]
+			.if(al==bl)
+				inc esi
+				inc edi
+				mov al, straightP[esi]
+				mov bl, straightP[edi]
+							.if(al==bl)
+								mov esi, var1
+								mov al, straightP[esi]
+									.if(HighThreeP < al)
+										mov HighThreeP,al
+							.endif
+					.endif
+			.endif
+		mov esi,var1
+		mov edi, var2
+		inc esi
+		inc edi
+	Loop TKP
+	.if(HighThreeP > 0)
+		mov PlayerThree,1
+	.endif
 ret
 ThreeKind ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
@@ -1439,20 +2530,72 @@ ThreeKind ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 TwoPair PROC
 
+mov ecx,6
+mov esi,0
+mov edi,1
+TPS:
+	mov al, straights[esi]
+	mov bl, straights[edi]
+		.if(al==bl)
+			.if(al > High2Pairs)
+				mov High2Pairs, al
+				mov SpockOnePair,1
+			.elseif (al > low2pairs)
+				mov Low2Pairs, al
+			.else	
+				mov Pairs, al
+			.endif
+		.endif
+	inc esi
+	inc edi
+Loop TPS
+
+	.if(High2pairs>0)
+		.if(Low2pairs>0)
+			mov SpockTwoPair, 1
+		.endif
+	.endif
+
+;player
+
+mov ecx,6
+mov esi,0
+mov edi,1
+TPP:
+	mov al, straightp[esi]
+	mov bl, straightp[edi]
+		.if(al==bl)
+			.if(al > High2Pairp)
+				mov High2Pairp, al
+				mov PlayerOnePair,1
+			.elseif (al > low2pairp)
+				mov Low2Pairp, al
+			.else	
+				mov Pairp, al
+			.endif
+		.endif
+	inc esi
+	inc edi
+Loop TPP
+
+	.if(High2pairp>0)
+		.if(Low2pairp>0)
+			mov PlayerTwoPair, 1
+		.endif
+	.endif
+
 ret
 TwoPair ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
-;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-Pair PROC
-
-ret
-Pair ENDP
-;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 HighCard PROC
+mov al, straights[0]
+mov HighCards,al
 
+mov al, straightp[0]
+mov HighCardp, al
 ret
 HighCard ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
