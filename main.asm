@@ -16,6 +16,7 @@ Card STRUCT																																							    ;
 Card ENDS																																								;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
+
 	var1 DWORD 0
 	var2 DWORD 0
 
@@ -98,6 +99,29 @@ Card ENDS																																								;
 	SpockOnePair DWORD 0
 	SpockHandValue DWORD 0
 
+tbl1 byte 2 dup (0)
+tbl2 byte 2 dup (0)
+tbl3 byte 2 dup (0)
+tbl4 byte 2 dup (0)
+tbl5 byte 2 dup (0)
+plr1 byte 2 dup (0)
+plr2 byte 2 dup (0)
+
+PromptCardUnknown byte "XX",0
+PromptShowSpock byte		"Spock Cards: |X|  |X|",0
+PromptShowTable1 byte		"Table Cards: |",0
+PromptShowTable2 byte       "| |",0
+PromptShowTable3 byte       "|",0
+PromptShowPlayer1 byte		"Player Cards: |",0
+PromptShowPlayer2 byte		"| |",0
+PromptShowPlayer3 byte		"|",0
+PromptShowSpockChips byte	"Spock Chips: ",0
+PromptShowTableChips byte	"Table Chips: ",0
+PromptShowPlayerChips byte	"Player Chips: ",0
+PromptSuit byte "X",0
+
+
+
 Deck byte 52 dup (?)
 
 																	;array of Suits
@@ -135,6 +159,7 @@ PromptPlayerRaise byte "Ammount to raise: ",0
 PromptPlayerCall byte "Call",0
 PromptPlayerFold byte "Fold",0
 PromptPlayerNotEnoughChips byte "You do not have enough chips for that",0
+PromptLine byte "--------------------------------------------------------------------"
 
 .code
 main PROC
@@ -609,6 +634,9 @@ HandPlayer ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 Bid PROC
+
+Call Display
+
 mov ChipsCall, 0
 	call HandValue
 .if(FoldS == 1)
@@ -2601,10 +2629,257 @@ HighCard ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-Tie PROC
+Display PROC
+	mov PromptSuit, "X"
+	Call HandSpock
+	Call HandPlayer
+	call clrscr
+
+	mov edx, OFFSET PromptShowSpock
+	Call writestring
+	call crlf
+	mov edx, OFFSET PromptShowSpockChips
+	call writestring
+	mov eax, ChipsSpock
+	call writeint
+	call crlf
+	call crlf
+
+	mov edx, OFFSET PromptShowTable1
+	call writestring
+	mov bl, cards1.value
+	.if(bl < 53 && bl > 0)
+		movzx eax, bl
+		call writeint
+	.else
+		mov edx, OFFSET PromptSuit
+		call writestring
+	.endif
+	mov al, cards1.suit
+		.if(al == 1)
+			mov bl, "s"
+			mov PromptSuit, bl
+		.elseif(al == 2)
+			mov bl, "h"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "c"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "d"
+			mov PromptSuit, bl
+		.else
+			mov bl, "X"
+			mov PromptSuit, bl
+		.endif
+	mov edx, OFFSET PromptSuit
+	call writestring
+
+	mov edx, OFFSET PromptShowTable2
+	call writestring
+	mov bl, cards2.value
+	.if(bl < 53 && bl > 0)
+		movzx eax, bl
+		call writeint
+	.else
+		mov edx, OFFSET PromptSuit
+		call writestring
+	.endif
+	mov al, cards2.suit
+		.if(al == 1)
+			mov bl, "s"
+			mov PromptSuit, bl
+		.elseif(al == 2)
+			mov bl, "h"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "c"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "d"
+			mov PromptSuit, bl
+		.else
+			mov bl, "X"
+			mov PromptSuit, bl
+		.endif
+	mov edx, OFFSET PromptSuit
+	call writestring
+
+	mov edx, OFFSET PromptShowTable2
+	call writestring
+	mov bl, cards3.value
+	.if(bl < 53 && bl > 0)
+		movzx eax, bl
+		call writeint
+	.else
+		mov edx, OFFSET PromptSuit
+		call writestring
+	.endif
+	mov al, cards3.suit
+		.if(al == 1)
+			mov bl, "s"
+			mov PromptSuit, bl
+		.elseif(al == 2)
+			mov bl, "h"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "c"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "d"
+			mov PromptSuit, bl
+		.else
+			mov bl, "X"
+			mov PromptSuit, bl
+		.endif
+	mov edx, OFFSET PromptSuit
+	call writestring
+
+	mov edx, OFFSET PromptShowTable2
+	call writestring
+	mov bl, cards4.value
+	.if(bl < 53 && bl > 0)
+		movzx eax, bl
+		call writeint
+	.else
+		mov edx, OFFSET PromptSuit
+		call writestring
+	.endif
+	mov al, cards4.suit
+		.if(al == 1)
+			mov bl, "s"
+			mov PromptSuit, bl
+		.elseif(al == 2)
+			mov bl, "h"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "c"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "d"
+			mov PromptSuit, bl
+		.else
+			mov bl, "X"
+			mov PromptSuit, bl
+		.endif
+	mov edx, OFFSET PromptSuit
+	call writestring
+
+	mov edx, OFFSET PromptShowTable2
+	call writestring
+	mov bl, cards5.value
+	.if(bl < 53 && bl > 0)
+		movzx eax, bl
+		call writeint
+	.else
+		mov edx, OFFSET PromptSuit
+		call writestring
+	.endif
+	mov al, cards5.suit
+		.if(al == 1)
+			mov bl, "s"
+			mov PromptSuit, bl
+		.elseif(al == 2)
+			mov bl, "h"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "c"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "d"
+			mov PromptSuit, bl
+		.else
+			mov bl, "X"
+			mov PromptSuit, bl
+		.endif
+	mov edx, OFFSET PromptSuit
+	call writestring
+	mov edx, OFFSET PromptShowTable3
+	call writestring
+	call crlf
+	mov edx, OFFSET PromptShowTableChips
+	call writestring
+	mov eax, ChipsTable
+	call writeint
+	call crlf
+	call crlf
+
+	mov edx, OFFSET PromptShowPlayer1
+	call writestring
+	mov bl, cardp6.value
+	.if(bl < 53 && bl > 0)
+		movzx eax, bl
+		call writeint
+	.else
+		mov edx, OFFSET PromptSuit
+		call writestring
+	.endif
+	mov al, cardp6.suit
+		.if(al == 1)
+			mov bl, "s"
+			mov PromptSuit, bl
+		.elseif(al == 2)
+			mov bl, "h"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "c"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "d"
+			mov PromptSuit, bl
+		.else
+			mov bl, "X"
+			mov PromptSuit, bl
+		.endif
+	mov edx, OFFSET PromptSuit
+	call writestring
+
+	mov edx, OFFSET PromptShowPlayer2
+	call writestring
+	mov bl, cardp7.value
+	.if(bl < 53 && bl > 0)
+		movzx eax, bl
+		call writeint
+	.else
+		mov edx, OFFSET PromptSuit
+		call writestring
+	.endif
+	mov al, cardp7.suit
+		.if(al == 1)
+			mov bl, "s"
+			mov PromptSuit, bl
+		.elseif(al == 2)
+			mov bl, "h"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "c"
+			mov PromptSuit, bl
+		.elseif(al == 3)
+			mov bl, "d"
+			mov PromptSuit, bl
+		.else
+			mov bl, "X"
+			mov PromptSuit, bl
+		.endif
+	mov edx, OFFSET PromptSuit
+	call writestring
+
+	mov edx, OFFSET PromptShowPlayer3
+	call writestring
+	call crlf
+	mov edx, OFFSET PromptShowPlayerChips
+	call writestring
+	mov eax, ChipsPlayer
+	call writeint
+	call crlf
+	call crlf
+
+
+
 
 ret
-Tie ENDP
+Display ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 END main
+
