@@ -1,7 +1,7 @@
-TITLE MASM Template
+TITLE Texas Hold 'em
 
-; Zeus cs278 EX
-;Write a program that 
+; Kyle Kat Neele
+; Write a texas holdem game against spock
 
 INCLUDE Irvine32.inc 
 
@@ -16,26 +16,77 @@ Card STRUCT																																							    ;
 Card ENDS																																								;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ConvertValue MACRO																																						;
+;Macro For converting card data into visable cards																														;
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
-	var1 DWORD 0
-	var2 DWORD 0
+	.if(bl <= 52 && bl >= 1)
+		.if(bl >= 14 && bl <= 26)
+			sub bl, 13			
+		.elseif(bl >= 27 && bl <= 39)
+			sub bl, 26
+		.elseif(bl >= 40 && bl <= 52)
+			sub bl, 39
+			
+		.endif
+		
+		.if(bl >0 && bl < 10)
+			movzx eax, bl
+			call writeint
+		.elseif (bl == 10)
+			mov PromptSuit, "J"
+			mov EDX, OFFSET PromptSuit
+			Call WriteString
+		.elseif (bl == 11)
+			mov PromptSuit, "Q"
+			mov EDX, OFFSET PromptSuit
+			Call WriteString
+		.elseif (bl == 12)
+			mov PromptSuit, "K"
+			mov EDX, OFFSET PromptSuit
+			Call WriteString
+		.elseif (bl == 13)
+			mov PromptSuit, "A"
+			mov EDX, OFFSET PromptSuit
+			Call WriteString
+			
+		.endif
+ENDM
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
-	cards1 Card <0,0>
-	cards2 Card <0,0>
-	cards3 Card <0,0>
-	cards4 Card <0,0>
-	cards5 Card <0,0>
-	cards6 Card <0,0>
-	cards7 Card <0,0>
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+ConvertSuit MACRO																																						;
+;Macro For converting card suit into visable cards																														;
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+	.if(bl == 1)
+		mov al, 06
+		mov PromptSuit, al
+	.elseif(bl == 2)
+		mov al, 03h
+		mov PromptSuit, al
+	.elseif(bl == 3)
+		mov al, 05
+		mov PromptSuit, al
+	.elseif(bl == 4)
+		mov al, 04
+		mov PromptSuit, al
+	.else
+		mov al, "X"
+		mov PromptSuit, al
+	.endif
+ENDM
 
-	cardp1 Card <0,0>
-	cardp2 Card <0,0>
-	cardp3 Card <0,0>
-	cardp4 Card <0,0>
-	cardp5 Card <0,0>
-	cardp6 Card <0,0>
-	cardp7 Card <0,0>
+BlankCard Macro
+	mov PromptSuit, "X"
+	mov edx, OFFSET PromptSuit
+	call writestring
+ENDM
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
+
+
+;Prompts for scoring
 	StraightS byte 7 dup (0)
 	StraightP byte 7 dup (0)
 
@@ -99,70 +150,156 @@ Card ENDS																																								;
 	SpockOnePair DWORD 0
 	SpockHandValue DWORD 0
 
-tbl1 byte 2 dup (0)
-tbl2 byte 2 dup (0)
-tbl3 byte 2 dup (0)
-tbl4 byte 2 dup (0)
-tbl5 byte 2 dup (0)
-plr1 byte 2 dup (0)
-plr2 byte 2 dup (0)
-
-PromptCardUnknown byte "XX",0
-PromptShowSpock byte		"Spock Cards: |X|  |X|",0
-PromptShowTable1 byte		"Table Cards: |",0
-PromptShowTable2 byte       "| |",0
-PromptShowTable3 byte       "|",0
-PromptShowPlayer1 byte		"Player Cards: |",0
-PromptShowPlayer2 byte		"| |",0
-PromptShowPlayer3 byte		"|",0
-PromptShowSpockChips byte	"Spock Chips: ",0
-PromptShowTableChips byte	"Table Chips: ",0
-PromptShowPlayerChips byte	"Player Chips: ",0
-PromptSuit byte "X",0
 
 
+;game controll variables
+	Deck byte 52 dup (?)
 
-Deck byte 52 dup (?)
+																		;array of Suits
+	PlayerHand byte 2 dup (?)											;2 Cards for the player
+	SpockHand byte 2 dup (?)											;2 Cards for the AI
+	Table byte 5 dup (?)												;3 Flop cards, 1 Turn card, 1 River card
 
-																	;array of Suits
-PlayerHand byte 2 dup (?)											;2 Cards for the player
-SpockHand byte 2 dup (?)											;2 Cards for the AI
-Table byte 5 dup (?)												;3 Flop cards, 1 Turn card, 1 River card
+	DeckMark DWORD ?													;Bookmark for place in Deck
+	TableMark DWORD ?													;Bookmark for place in Table
 
-DeckMark DWORD ?													;Bookmark for place in Deck
-TableMark DWORD ?													;Bookmark for place in Table
+	ChipsPlayer DWORD 0
+	ChipsSpock  DWORD 0
+	ChipsTable DWORD 0
+	BigBlind DWORD 1													;Variable for who is responsible for Big blind, other is responsible for little blind 1/2 big blind bet
+	FullHandSpock BYTE 7 dup (0)										;FullHand of ... including 2 cards 6-7 and table cards 1-5
+	FullHandPlayer BYTE 7 dup (0)										;FullHand of ... including 2 cards 6-7 and table cards 1-5			
 
-ChipsPlayer DWORD 0
-ChipsSpock  DWORD 0
-ChipsTable DWORD 0
-BigBlind DWORD 1													;Variable for who is responsible for Big blind, other is responsible for little blind 1/2 big blind bet
-FullHandSpock BYTE 7 dup (0)
-FullHandPlayer BYTE 7 dup (0)
+	
+	var1 DWORD 0
+	var2 DWORD 0
 
-PromptYouWin byte "You Win, your earning are: ", 0
-PromptYouLose byte "You Lose, you walk away with: ", 0
-PromptPlayAgain byte "Would you like to play again 1 for yes or 0 for no:  ",0
-PromptWinImage byte "?",0
-PromptLoseImage byte "?",0
-PromptChipsPlayer byte "?",0
-PromptChipsSpock byte "?",0
-PromptBadInput byte "That is not a valid choice, please try again",0
-PromptSpockTurn byte "Spocks Turn To bet",0
-PromptSpockBet byte "Spock Bets: ",0
-PromptSpockRaise byte "Spock Raises: ",0
-PromptSpockCall byte "Spock Calls",0
-PromptSpockFold byte "Spock Folds",0
-PromptPlayerBet byte "Would you like to bet<1>, call<2>, or fold<0>",0
-PromptPlayerSecond byte "Would you like to raise<1>, call<2>, or fold<0>",0
-PromptPlayerTurn byte "It is your turn",0
-PromptPlayerRaise byte "Ammount to raise: ",0
-PromptPlayerCall byte "Call",0
-PromptPlayerFold byte "Fold",0
-PromptPlayerNotEnoughChips byte "You do not have enough chips for that",0
-PromptLine byte "--------------------------------------------------------------------"
+	cards1 Card <0,0>
+	cards2 Card <0,0>
+	cards3 Card <0,0>
+	cards4 Card <0,0>
+	cards5 Card <0,0>
+	cards6 Card <0,0>
+	cards7 Card <0,0>
+
+	cardp1 Card <0,0>
+	cardp2 Card <0,0>
+	cardp3 Card <0,0>
+	cardp4 Card <0,0>
+	cardp5 Card <0,0>
+	cardp6 Card <0,0>
+	cardp7 Card <0,0>
+
+;Prompts
+	PromptYouWin byte "YOU WIN. FASCINATING , your earning are: ", 0
+	PromptYouLose byte "YOU LOSE. LIVE LONG & PROSPER, you walk away with: ", 0
+	PromptPlayAgain byte "Would you like to play again 1 for yes or 0 for no:  ",0
+	PromptWinImage byte "?",0
+	PromptLoseImage byte "?",0
+	PromptChipsPlayer byte "?",0
+	PromptChipsSpock byte "?",0
+	PromptBadInput byte "That is not a valid choice, please try again",0
+	PromptSpockTurn byte "Spocks Turn To bet",0
+	PromptSpockBet byte "Spock Bets: ",0
+	PromptSpockRaise byte "Spock Raises: ",0
+	PromptSpockCall byte "Spock Calls",0
+	PromptSpockFold byte "Spock Folds",0
+	PromptPlayerBet byte "Would you like to bet<1>, call<2>, or fold<0>",0			
+	PromptPlayerSecond byte "Would you like to raise<1>, call<2>, or fold<0>",0		
+	PromptPlayerTurn byte "It is your turn",0										
+	PromptPlayerRaise byte "Ammount to raise: ",0									
+	PromptPlayerCall byte "Call",0													
+	PromptPlayerFold byte "Fold",0													
+	PromptPlayerNotEnoughChips byte "You do not have enough chips for that",0		
+	PromptLine byte "--------------------------------------------------------------------"
+	PromptCardUnknown byte		"XX",0
+	PromptShowSpock byte		"Spock Cards: |XX|  |XX|",0
+	PromptShowTable1 byte		"Table Cards: |",0
+	PromptShowTable2 byte       "| |",0
+	PromptShowTable3 byte       "|",0
+	PromptShowPlayer1 byte		"Player Cards: |",0
+	PromptShowPlayer2 byte		"| |",0
+	PromptShowPlayer3 byte		"|",0
+	PromptShowSpockChips byte	"Spock Chips: ",0
+	PromptShowTableChips byte	"Table Chips: ",0
+	PromptShowPlayerChips byte	"Player Chips: ",0
+	PromptSuit byte				"X",0
+	PromptShowSpock1 byte		"Spock Cards: |",0
+	PromptHandVS1 byte			"Spock Has: ",0
+	PromptRF byte				"Royal Flush",0
+	PromptSF byte				"Straight Flush",0
+	PromptFK byte				"Four of a Kind",0
+	PromptFH byte				"Full House",0
+	PromptFL byte				"Flush",0
+	PromptST byte				"Straight",0
+	PromptTK byte				"Three of a Kind",0
+	PromptTP byte				"Two Pair",0
+	PromptOP byte				"Pair",0
+	PromptHandVP1 byte			"Player Has: ",0
+	PromptHandVP2 byte			" High",0
+	PromptHandWinP byte			"Player Wins the Hand",0
+	PromptHandWinS byte			"Spock Wins the Hand",0
+	PromptHandWinT byte			"Tie",0
+	PromptPressEnter byte		"Press Enter To Continue",0
+	pfold byte					"Player Folded",0
+	sfold byte					"Spock Folded",0
+
+;Images
+	Spock2 BYTE "                                                     " , 0
+	Spock3 BYTE "              :                                 :    " , 0
+	Spock4 BYTE "            :                                   :    " , 0
+	Spock5 BYTE "            :  RRVIttIti+==iiii++iii++=;:,       :   " , 0
+	Spock6 BYTE "            : IBMMMMWWWWMMMMMBXXVVYYIi=;:,        :  " , 0
+	Spock7 BYTE "            : tBBMMMWWWMMMMMMBXXXVYIti;;;:,,      :  " , 0
+	Spock8 BYTE "            t YXIXBMMWMMBMBBRXVIi+==;::;::::       , " , 0
+	Spock9 BYTE "           ;t IVYt+=+iIIVMBYi=:,,,=i+=;:::::,      ;;" , 0
+	Spock10 BYTE "           YX=YVIt+=,,:=VWBt;::::=,,:::;;;:;:     ;;;" , 0
+	Spock11 BYTE "           VMiXRttItIVRBBWRi:.tXXVVYItiIi==;:   ;;;; " , 0
+	Spock12 BYTE "           =XIBWMMMBBBMRMBXi;,tXXRRXXXVYYt+;;: ;;;;; " , 0
+	Spock13 BYTE "            =iBWWMMBBMBBWBY;;;,YXRRRRXXVIi;;;:;,;;;= " , 0
+	Spock14 BYTE "             iXMMMMMWWBMWMY+;=+IXRRXXVYIi;:;;:,,;;=  " , 0
+	Spock15 BYTE "             iBRBBMMMMYYXV+:,:;+XRXXVIt+;;:;++::;;;  " , 0
+	Spock16 BYTE "             =MRRRBMMBBYtt;::::;+VXVIi=;;;:;=+;;;;=  " , 0
+	Spock17 BYTE "              XBRBBBBBMMBRRVItttYYYYt=;;;;;;==:;=    " , 0
+	Spock18 BYTE "               VRRRRRBRRRRXRVYYIttiti=::;:::=;=      " , 0
+	Spock19 BYTE "                YRRRRXXVIIYIiitt+++ii=:;:::;==       " , 0
+	Spock20 BYTE "                +XRRXIIIIYVVI;i+=;=tt=;::::;:;       " , 0
+	Spock21 BYTE "                 tRRXXVYti++==;;;=iYt;:::::,;;       " , 0
+	Spock22 BYTE "                  IXRRXVVVVYYItiitIIi=:::;,::;       " , 0
+	Spock23 BYTE "                   tVXRRRBBRXVYYYIti;::::,::::       " , 0
+	Spock24 BYTE "                    YVYVYYYYYItti+=:,,,,,:::::;      " , 0
+	Spock25 BYTE "                    YRVI+==;;;;;:,,,,,,,:::::::      " , 0
+
+	Texas1 BYTE "                                           " , 0
+	Texas2 BYTE "MMP''MM''YMM" , 0
+	Texas3 BYTE "P'   MM   `7" , 0
+	Texas4 BYTE "     MM  .gP'Ya `7M'   `MF' ,6'Yb.  ,pP'Ybd	              __             " , 0
+	Texas5 BYTE "     MM ,M'   Yb  `VA ,V'  8)   MM  8I   `#	        _..-''--'----_.      " , 0
+	Texas6 BYTE "     MM 8M''''''    XMX     ,pm9MM  `YMMMa.	      ,''.-''| .---/ _`-._   " , 0
+	Texas7 BYTE "     MM YM.    ,  ,V' VA.  8M   MM  L.   I8	    ,' \ \  ;| | ,/ / `-._`-." , 0
+	Texas8 BYTE "   .JMML.`Mbmmd'.AM.   .MA.`Moo9^Yo.M9mmmP'	  ,' ,',\ \( | |// /,-._  / /" , 0
+	Hold1 BYTE "	                       ,,        ,,	  ;.`. `,\ \`| |/ / |   )/ / " , 0
+	Hold2 BYTE "	`7MMF'  `7MMF'       `7MM      `7MM	 / /`_`.\_\ \| /_.-.'-''/ /  " , 0
+	Hold3 BYTE "	  MM      MM           MM        MM	/ /_|_:.`. \ |;'`..')  / /   " , 0
+	Hold4 BYTE "	  MM      MM  ,pW'Wq.  MM   ,M''bMM	`-._`-._`.`.;`.\  ,'  / /    " , 0
+	Hold5 BYTE "	  MMmmmmmmMM 6W'   `Wb MM ,AP    MM	    `-._`.`/    ,'-._/ /     " , 0
+	Hold6 BYTE "	  MM      MM 8M     M8 MM 8MI    MM	      : `-/     \`-.._/      " , 0
+	Hold7 BYTE "	  MM      MM YA.   ,A9 MM `Mb    MM	      |  :      ;._ (        " , 0
+	Hold8 BYTE "	.JMML.  .JMML.`Ybmd9'.JMML.`Wbmd'MML.	      :  |      \  ` \       " , 0
+
+	Em1 BYTE "																       \         \   |       " , 0
+	Em2 BYTE "	    gp `7MM'''YMM			        :        :   ;       " , 0
+	Em3 BYTE "	    \/   MM    `7			        |           /        " , 0
+	Em4 BYTE "	    `'   MM   d    `7MMpMMMb.pMMMb.	        ;         ,'         " , 0
+	Em5 BYTE "	         MMmmMM      MM    MM    MM	       /         /           " , 0
+	Em6 BYTE "	         MM   Y  ,   MM    MM    MM	     /         /            " , 0
+	Em7 BYTE "	         MM     ,M   MM    MM    MM	              /             " , 0
+	Em8 BYTE "	       .JMMmmmmMMM .JMML  JMML  JMML." , 0
+
 
 .code
 main PROC
+	call Welcome
 	mov ChipsPlayer, 1000
 	mov ChipsSpock, 1000
 	G1:
@@ -185,6 +322,97 @@ main PROC
 
 exit
 main ENDP
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+Welcome PROC
+;Display welcome image
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+	call Clrscr
+	mov eax, green
+	call SetTextColor
+
+	mov edx, OFFSET Texas1
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Texas2
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Texas3
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Texas4
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Texas5
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Texas6
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Texas7
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Texas8
+	call WriteString
+	call Crlf
+
+	mov edx, OFFSET Hold1
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Hold2
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Hold3
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Hold4
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Hold5
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Hold6
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Hold7
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Hold8
+	call WriteString
+	call Crlf
+
+	mov edx, OFFSET Em1
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Em2
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Em3
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Em4
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Em5
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Em6
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Em7
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Em8
+	call WriteString
+	call Crlf
+	
+	call Crlf
+	mov eax, white
+	call SetTextColor
+	call readint
+ret
+Welcome ENDP
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 Shuffel PROC																																							;
@@ -214,7 +442,7 @@ mov esi, 0
 
 mov ecx, 52
 mov dl, 0
-mov al, 1
+mov al, 2
 mov esi, 0
 	L0:
 		mov Deck[esi], al
@@ -379,8 +607,81 @@ Win PROC																																								;
 ;	Returns: Nothing																																					;
 ;	Display image and earnings, calls PlayAgain																															;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-	mov edx, OFFSET PromptWinImage
+	call clrscr
+	mov edx, OFFSET Spock2
 	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock3
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock4
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock5
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock6
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock7
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock8
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock9
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock10
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock11
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock12
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock13
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock14
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock15
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock16
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock17
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock18
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock19
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock20
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock21
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock22
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock23
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock24
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock25
+	call WriteString
+	call Crlf
+
+	call Crlf
 	call CRLF
 	mov edx, OFFSET PromptYouWin
 	call WriteString
@@ -396,8 +697,82 @@ Lose PROC																																								;
 ;	Returns: Nothing																																					;
 ;	Display image and earnings, calls PlayAgain																															;
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
-	mov edx, OFFSET PromptLoseImage
+	call Clrscr
+	call Crlf
+	mov edx, OFFSET Spock2
 	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock3
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock4
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock5
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock6
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock7
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock8
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock9
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock10
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock11
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock12
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock13
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock14
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock15
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock16
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock17
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock18
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock19
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock20
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock21
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock22
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock23
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock24
+	call WriteString
+	call Crlf
+	mov edx, OFFSET Spock25
+	call WriteString
+	call Crlf
+
+	call Crlf
 	call CRLF
 	mov edx, OFFSET PromptYouLose
 	call WriteString
@@ -634,6 +1009,8 @@ HandPlayer ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 Bid PROC
+;Logic for spock ai biding if will lose then fold if hand value low bid low, if hand value high bid high, if out of chips fold
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 Call Display
 
@@ -982,6 +1359,8 @@ Bid ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 HandValue PROC
+;clear hand values and reassess based on variables with stored data
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 mov isSpadeP, 0
 mov isHeartP, 0
@@ -1095,32 +1474,48 @@ HandValue ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 CompareHand Proc
+;Looks at player hand value and compairs against eachother for win lose or tie
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
-
+Call DisplaySpock
 
 	Call HandValue
-	mov esi, PlayerHandValue
-	mov edi, SpockHandValue
+
 
 	.if(FoldS==1)
 	mov SpockHandValue,0
 	mov HighCards,0
+	mov EDX, OFFSET SFOLD
+	Call writestring
+	call crlf
 .endif
 
 .if(FoldP==1)
 	mov PlayerHandValue,0
 	mov HighCardP,0
+	mov edx, OFFSET Pfold
+	Call writestring
+	call crlf
 .endif
 
+	mov esi, PlayerHandValue
+	mov edi, SpockHandValue	
+	
 	.if(esi>edi)
 		mov eax, ChipsTable
 		add ChipsPlayer, eax
 		mov ChipsTable, 0
+		mov EDX, OFFSET PromptHandWinP
+		call writestring
+		call crlf
 
 	.elseif(edi>esi)
 		mov eax, ChipsTable
 		add ChipsSpock, eax
 		mov ChipsTable, 0
+		mov EDX, OFFSET PromptHandWinS
+		call writestring
+		call crlf
 	.else
 		mov al, HighCardp
 		mov bl, Highcards
@@ -1141,16 +1536,29 @@ CompareHand Proc
 				add ChipsPlayer, eax
 				mov ChipsTable, 0
 			.endif
+		mov EDX, OFFSET PromptHandWinT
+		call writestring
+		call crlf
 
 	.endif
 	mov FoldP, 0
 	mov FoldS, 0
+	Call RoundWinner
+	mov cards1.suit, 0
+	mov cards2.suit, 0
+	mov cards3.suit, 0
+	mov cards4.suit, 0
+	mov cards5.suit, 0
+	mov cards6.suit, 0
+	mov cards7.suit, 0
 	ret
 CompareHand ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 IsAFlush Proc
+;organize and calculate if person has 5 or more cards of same suit based off card.suit
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 ;Spock Check
 	.if (cards1.suit == 1)
 		inc IsSpadeS
@@ -1368,6 +1776,10 @@ IsAFlush ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 IsAStraight Proc
+;organize *player/spockhand into numerical order based off card.value
+;if card a = card b then card a=card b and card b= card c
+;if subtraction of card a - card b = 1 then go on to check if card a = card b
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 ;Spock Straight
 
@@ -2395,6 +2807,8 @@ IsAStraight ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
  FourKind PROC
+; compute if person has four cards of same value if card a=b=c=d if not b=c=d=e if...
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 mov ecx, 4
 mov esi,0
 mov edi,1
@@ -2468,6 +2882,8 @@ FourKind ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 FullHouse PROC
+;If 3 of a kind and pair then person has full house
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 .if(HighThrees > 0)
 	.if(High2Pairs > 0)
@@ -2487,6 +2903,8 @@ FullHouse ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 ThreeKind PROC
+;compute if three of a kind
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 mov ecx,5
 mov esi,0
@@ -2557,6 +2975,8 @@ ThreeKind ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 TwoPair PROC
+;Compute 2pair
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
 mov ecx,6
 mov esi,0
@@ -2619,6 +3039,8 @@ TwoPair ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 HighCard PROC
+;Compute highes card from is hand organized by straight
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 mov al, straights[0]
 mov HighCards,al
 
@@ -2630,10 +3052,14 @@ HighCard ENDP
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 Display PROC
+;Display Cards except for spock
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 	mov PromptSuit, "X"
 	Call HandSpock
 	Call HandPlayer
 	call clrscr
+
+;Spock
 
 	mov edx, OFFSET PromptShowSpock
 	Call writestring
@@ -2645,155 +3071,69 @@ Display PROC
 	call crlf
 	call crlf
 
+;Table
+
 	mov edx, OFFSET PromptShowTable1
 	call writestring
 	mov bl, cards1.value
-	.if(bl < 53 && bl > 0)
-		movzx eax, bl
-		call writeint
+	ConvertValue
 	.else
 		mov edx, OFFSET PromptSuit
 		call writestring
 	.endif
-	mov al, cards1.suit
-		.if(al == 1)
-			mov bl, "s"
-			mov PromptSuit, bl
-		.elseif(al == 2)
-			mov bl, "h"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "c"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "d"
-			mov PromptSuit, bl
-		.else
-			mov bl, "X"
-			mov PromptSuit, bl
-		.endif
-	mov edx, OFFSET PromptSuit
-	call writestring
+	mov bl, cards1.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
 
 	mov edx, OFFSET PromptShowTable2
 	call writestring
 	mov bl, cards2.value
-	.if(bl < 53 && bl > 0)
-		movzx eax, bl
-		call writeint
+	ConvertValue
 	.else
-		mov edx, OFFSET PromptSuit
-		call writestring
+		BlankCard
 	.endif
-	mov al, cards2.suit
-		.if(al == 1)
-			mov bl, "s"
-			mov PromptSuit, bl
-		.elseif(al == 2)
-			mov bl, "h"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "c"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "d"
-			mov PromptSuit, bl
-		.else
-			mov bl, "X"
-			mov PromptSuit, bl
-		.endif
-	mov edx, OFFSET PromptSuit
-	call writestring
+	mov bl, cards2.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
 
 	mov edx, OFFSET PromptShowTable2
 	call writestring
 	mov bl, cards3.value
-	.if(bl < 53 && bl > 0)
-		movzx eax, bl
-		call writeint
+	ConvertValue
 	.else
-		mov edx, OFFSET PromptSuit
-		call writestring
+		BlankCard
 	.endif
-	mov al, cards3.suit
-		.if(al == 1)
-			mov bl, "s"
-			mov PromptSuit, bl
-		.elseif(al == 2)
-			mov bl, "h"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "c"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "d"
-			mov PromptSuit, bl
-		.else
-			mov bl, "X"
-			mov PromptSuit, bl
-		.endif
-	mov edx, OFFSET PromptSuit
-	call writestring
+	mov bl, cards3.suit
+	ConvertSuit
+	mov al, PromptSuit
+	call writechar
 
 	mov edx, OFFSET PromptShowTable2
 	call writestring
 	mov bl, cards4.value
-	.if(bl < 53 && bl > 0)
-		movzx eax, bl
-		call writeint
+	ConvertValue
 	.else
-		mov edx, OFFSET PromptSuit
-		call writestring
+		BlankCard
 	.endif
-	mov al, cards4.suit
-		.if(al == 1)
-			mov bl, "s"
-			mov PromptSuit, bl
-		.elseif(al == 2)
-			mov bl, "h"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "c"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "d"
-			mov PromptSuit, bl
-		.else
-			mov bl, "X"
-			mov PromptSuit, bl
-		.endif
-	mov edx, OFFSET PromptSuit
-	call writestring
+	mov bl, cards4.suit
+	ConvertSuit
+	mov al, PromptSuit
+	call writechar
 
 	mov edx, OFFSET PromptShowTable2
 	call writestring
 	mov bl, cards5.value
-	.if(bl < 53 && bl > 0)
-		movzx eax, bl
-		call writeint
+	ConvertValue
 	.else
-		mov edx, OFFSET PromptSuit
-		call writestring
+		BlankCard
 	.endif
-	mov al, cards5.suit
-		.if(al == 1)
-			mov bl, "s"
-			mov PromptSuit, bl
-		.elseif(al == 2)
-			mov bl, "h"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "c"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "d"
-			mov PromptSuit, bl
-		.else
-			mov bl, "X"
-			mov PromptSuit, bl
-		.endif
-	mov edx, OFFSET PromptSuit
-	call writestring
+	mov bl, cards5.suit
+	ConvertSuit
+	mov al, PromptSuit
+	call writechar
+
 	mov edx, OFFSET PromptShowTable3
 	call writestring
 	call crlf
@@ -2804,65 +3144,190 @@ Display PROC
 	call crlf
 	call crlf
 
+; Player
+
 	mov edx, OFFSET PromptShowPlayer1
 	call writestring
 	mov bl, cardp6.value
-	.if(bl < 53 && bl > 0)
-		movzx eax, bl
-		call writeint
+	ConvertValue
 	.else
-		mov edx, OFFSET PromptSuit
-		call writestring
+		BlankCard
 	.endif
-	mov al, cardp6.suit
-		.if(al == 1)
-			mov bl, "s"
-			mov PromptSuit, bl
-		.elseif(al == 2)
-			mov bl, "h"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "c"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "d"
-			mov PromptSuit, bl
-		.else
-			mov bl, "X"
-			mov PromptSuit, bl
-		.endif
-	mov edx, OFFSET PromptSuit
-	call writestring
+	mov bl, cardp6.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
 
 	mov edx, OFFSET PromptShowPlayer2
 	call writestring
 	mov bl, cardp7.value
-	.if(bl < 53 && bl > 0)
-		movzx eax, bl
-		call writeint
+	ConvertValue
+	.else
+		BlankCard
+	.endif
+	mov bl, cardp7.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
+
+	mov edx, OFFSET PromptShowPlayer3
+	call writestring
+	call crlf
+	mov edx, OFFSET PromptShowPlayerChips
+	call writestring
+	mov eax, ChipsPlayer
+	call writeint
+	call crlf
+	call crlf
+	
+
+ret
+Display ENDP
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+DisplaySpock PROC
+;Display Spocks cards
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+	mov PromptSuit, "X"
+	Call HandSpock
+	Call HandPlayer
+	call clrscr
+
+;Spock
+
+	mov EDX, OFFSET PromptShowSpock1
+	call writestring
+	mov bl, cards6.value
+	ConvertValue
+	.else
+		BlankCard
+	.endif
+	mov bl, cards6.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
+
+	mov edx, OFFSET PromptShowPlayer2
+	call writestring
+	mov bl, cards7.value
+	ConvertValue
+	.else
+		BlankCard
+	.endif
+	mov bl, cards7.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
+
+	mov edx, OFFSET PromptShowPlayer3
+	call writestring
+	call crlf
+	mov edx, OFFSET PromptShowSpockChips
+	call writestring
+	mov eax, ChipsSpock
+	call writeint
+	call crlf
+	call crlf
+
+;Table
+
+	mov edx, OFFSET PromptShowTable1
+	call writestring
+	mov bl, cards1.value
+	ConvertValue
 	.else
 		mov edx, OFFSET PromptSuit
 		call writestring
 	.endif
-	mov al, cardp7.suit
-		.if(al == 1)
-			mov bl, "s"
-			mov PromptSuit, bl
-		.elseif(al == 2)
-			mov bl, "h"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "c"
-			mov PromptSuit, bl
-		.elseif(al == 3)
-			mov bl, "d"
-			mov PromptSuit, bl
-		.else
-			mov bl, "X"
-			mov PromptSuit, bl
-		.endif
-	mov edx, OFFSET PromptSuit
+	mov bl, cards1.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
+
+	mov edx, OFFSET PromptShowTable2
 	call writestring
+	mov bl, cards2.value
+	ConvertValue
+	.else
+		BlankCard
+	.endif
+	mov bl, cards2.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
+
+	mov edx, OFFSET PromptShowTable2
+	call writestring
+	mov bl, cards3.value
+	ConvertValue
+	.else
+		BlankCard
+	.endif
+	mov bl, cards3.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
+
+	mov edx, OFFSET PromptShowTable2
+	call writestring
+	mov al, cards4.value
+	ConvertValue
+	.else
+		BlankCard
+	.endif
+	mov bl, cards4.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
+
+	mov edx, OFFSET PromptShowTable2
+	call writestring
+	mov bl, cards5.value
+	ConvertValue
+	.else
+		BlankCard
+	.endif
+	mov bl, cards5.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
+
+	mov edx, OFFSET PromptShowTable3
+	call writestring
+	call crlf
+	mov edx, OFFSET PromptShowTableChips
+	call writestring
+	mov eax, ChipsTable
+	call writeint
+	call crlf
+	call crlf
+
+; Player
+
+	mov edx, OFFSET PromptShowPlayer1
+	call writestring
+	mov bl, cardp6.value
+	ConvertValue
+	.else
+		BlankCard
+	.endif
+	mov bl, cardp6.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
+
+	mov edx, OFFSET PromptShowPlayer2
+	call writestring
+	mov bl, cardp7.value
+	ConvertValue
+	.else
+		BlankCard
+	.endif
+	mov bl, cardp7.suit
+	ConvertSuit
+	mov al,  PromptSuit
+	call writechar
 
 	mov edx, OFFSET PromptShowPlayer3
 	call writestring
@@ -2874,12 +3339,137 @@ Display PROC
 	call crlf
 	call crlf
 
-
-
-
 ret
-Display ENDP
+DisplaySpock ENDP
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
 
-END main
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+RoundWinner PROC
+;Display hand values and who wins
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+;Spock
+	.if(SpockHandValue == 9)
+		mov EDX, OFFSET PromptHandVS1
+		call WriteString
+		mov EDX, OFFSET PromptRF
+		Call WriteString
+	.elseif(SpockHandValue == 8)
+		mov EDX, OFFSET PromptHandVS1
+		call WriteString
+		mov EDX, OFFSET PromptSF
+		Call WriteString
+	.elseif(SpockHandValue == 7)
+		mov EDX, OFFSET PromptHandVS1
+		call WriteString
+		mov EDX, OFFSET PromptFK
+		Call WriteString
+		mov EDX, OFFSET PromptHandVP2
+		call writestring
+	.elseif(SpockHandValue == 6)
+		mov EDX, OFFSET PromptHandVS1
+		call WriteString
+		mov EDX, OFFSET PromptFH
+		Call WriteString
+	.elseif(SpockHandValue == 5)
+		mov EDX, OFFSET PromptHandVS1
+		call WriteString
+		mov EDX, OFFSET PromptFL
+		Call WriteString
+	.elseif(SpockHandValue == 4)
+		mov EDX, OFFSET PromptHandVS1
+		call WriteString
+		mov EDX, OFFSET PromptST
+		Call WriteString
+	.elseif(SpockHandValue == 3)
+		mov EDX, OFFSET PromptHandVS1
+		call WriteString
+		mov EDX, OFFSET PromptTK
+		Call WriteString
+		mov EDX, OFFSET PromptHandVP2
+		call writestring
+	.elseif(SpockHandValue == 2)
+		mov EDX, OFFSET PromptHandVS1
+		call WriteString
+		mov EDX, OFFSET PromptTP
+		Call WriteString
+		mov EDX, OFFSET PromptHandVP2
+		call writestring
+	.elseif(SpockHandValue == 1)
+		mov EDX, OFFSET PromptHandVS1
+		call WriteString
+		mov EDX, OFFSET PromptOP
+		Call WriteString
+	.else
+		mov EDX, OFFSET PromptHandVS1
+		call WriteString 
+		mov EDX, OFFSET PromptHandVP2
+		call writestring
+	.endif
+	call CRLF
 
+;player
+	.if(PlayerHandValue == 9)
+		mov EDX, OFFSET PromptHandVP1
+		call WriteString
+		mov EDX, OFFSET PromptRF
+		Call WriteString
+	.elseif(PlayerHandValue == 8)
+		mov EDX, OFFSET PromptHandVP1
+		call WriteString
+		mov EDX, OFFSET PromptSF
+		Call WriteString
+	.elseif(PlayerHandValue == 7)
+		mov EDX, OFFSET PromptHandVP1
+		call WriteString
+		mov EDX, OFFSET PromptFK
+		Call WriteString
+		mov EDX, OFFSET PromptHandVP2
+		call writestring
+	.elseif(PlayerHandValue == 6)
+		mov EDX, OFFSET PromptHandVP1
+		call WriteString
+		mov EDX, OFFSET PromptFH
+		Call WriteString
+	.elseif(PlayerHandValue == 5)
+		mov EDX, OFFSET PromptHandVP1
+		call WriteString
+		mov EDX, OFFSET PromptFL
+		Call WriteString
+	.elseif(PlayerHandValue == 4)
+		mov EDX, OFFSET PromptHandVP1
+		call WriteString
+		mov EDX, OFFSET PromptST
+		Call WriteString
+	.elseif(PlayerHandValue == 3)
+		mov EDX, OFFSET PromptHandVP1
+		call WriteString
+		mov EDX, OFFSET PromptTK
+		Call WriteString
+		mov EDX, OFFSET PromptHandVP2
+		call writestring
+	.elseif(PlayerHandValue == 2)
+		mov EDX, OFFSET PromptHandVP1
+		call WriteString
+		mov EDX, OFFSET PromptTP
+		Call WriteString
+		mov EDX, OFFSET PromptHandVP2
+		call writestring
+	.elseif(SpockHandValue == 1)
+		mov EDX, OFFSET PromptHandVP1
+		call WriteString
+		mov EDX, OFFSET PromptOP
+		Call WriteString
+	.else
+		mov EDX, OFFSET PromptHandVP1
+		call WriteString 
+		mov EDX, OFFSET PromptHandVP2
+		call WriteString
+	.endif
+	call CRLF
+	mov EDX, OFFSET PromptPressEnter
+	Call writeString
+	call readint
+	ret
+RoundWinner ENDP
+;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------;
+END main
